@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client-store-service
+  namespace: ev91
+  labels:
+    app: client-store-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: client-store-service
+  template:
+    metadata:
+      labels:
+        app: client-store-service
+    spec:
+      containers:
+      - name: client-store-service
+        image: sanjub07/client-store-service:latest
+        ports:
+        - containerPort: 3006
+        env:
+        - name: PORT
+          value: "3006"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: ev91-db-secrets
+              key: client-store-service-db-url
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: ev91-jwt-secrets
+              key: jwt-secret
+        envFrom:
+        - configMapRef:
+            name: ev91-service-config
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3006
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3006
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: client-store-service
+  namespace: ev91
+spec:
+  selector:
+    app: client-store-service
+  ports:
+    - port: 3006
+      targetPort: 3006
+  type: ClusterIP 

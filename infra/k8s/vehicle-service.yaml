@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vehicle-service
+  namespace: ev91
+  labels:
+    app: vehicle-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vehicle-service
+  template:
+    metadata:
+      labels:
+        app: vehicle-service
+    spec:
+      containers:
+      - name: vehicle-service
+        image: sanjub07/vehicle-service:latest
+        ports:
+        - containerPort: 4004
+        env:
+        - name: PORT
+          value: "4004"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: ev91-db-secrets
+              key: vehicle-service-db-url
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: ev91-jwt-secrets
+              key: jwt-secret
+        - name: MAX_FILE_SIZE
+          value: "10485760"
+        - name: ALLOWED_FILE_TYPES
+          value: "image/jpeg,image/png,image/jpg,application/pdf"
+        - name: UPLOAD_PATH
+          value: "./uploads"
+        - name: RATE_LIMIT_WINDOW_MS
+          value: "60000"
+        - name: RATE_LIMIT_MAX_REQUESTS
+          value: "1000"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: ev91-aws-secrets
+              key: AWS_ACCESS_KEY_ID
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ev91-aws-secrets
+              key: AWS_SECRET_ACCESS_KEY
+        - name: AWS_REGION
+          value: "ap-south-1"
+        - name: AWS_S3_BUCKET
+          value: "ev91-vehicle-docs"
+        - name: S3_BASE_URL
+          value: "https://ev91-vehicle-docs.s3.ap-south-1.amazonaws.com"
+        envFrom:
+        - configMapRef:
+            name: ev91-service-config
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 4004
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 4004
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vehicle-service
+  namespace: ev91
+spec:
+  selector:
+    app: vehicle-service
+  ports:
+    - port: 4004
+      targetPort: 4004
+  type: ClusterIP  # Internal only; external traffic via Ingress

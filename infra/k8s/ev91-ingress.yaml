@@ -1,0 +1,39 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ev91-ingress
+  namespace: ev91
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+        # Admin Portal root and /admin (rewrite to /)
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: admin-portal
+              port:
+                number: 80
+          # Only this path should rewrite
+          # You can also use a specific annotation per path via nginx.ingress.kubernetes.io/server-snippet if needed
+
+        - path: /admin
+          pathType: Prefix
+          backend:
+            service:
+              name: admin-portal
+              port:
+                number: 80
+
+        # API Gateway - NO rewrite
+        - path: /api
+          pathType: Prefix
+          backend:
+            service:
+              name: api-gateway
+              port:
+                number: 8000

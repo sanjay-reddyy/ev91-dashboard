@@ -1,0 +1,121 @@
+{
+  "folders": [
+    {
+      "name": "🏗️ Root",
+      "path": "."
+    },
+     {
+      "name": "🚚 Vehicle Service",
+      "path": "./services/vehicle-service"
+    },
+    {
+      "name": "🔐 Auth Service",
+      "path": "./services/auth-service"
+    },
+    {
+      "name": "🏪 Client Store Service",
+      "path": "./services/client-store-service"
+    },
+    {
+      "name": "🚚 Rider Service",
+      "path": "./services/rider-service"
+    },
+    {
+      "name": "⚙️ Spare Parts Service",
+      "path": "./services/spare-parts-service"
+    },
+    {
+      "name": "⚙️ API Gateway",
+      "path": "./apps/api-gateway"
+    },
+    {
+      "name": "⚙️ Admin Portal",
+      "path": "./apps/admin-portal"
+    },
+    {
+      "name": "📱 Mobile App",
+      "path": "./apps/mobile-app"
+    }
+  ],
+  "settings": {
+    // TypeScript Performance Optimizations
+    "typescript.preferences.includePackageJsonAutoImports": "off",
+    "typescript.suggest.autoImports": false,
+    "typescript.disableAutomaticTypeAcquisition": true,
+    "typescript.updateImportsOnFileMove.enabled": "never",
+    "typescript.preferences.allowIncompleteCompletions": false,
+    "typescript.maxTsServerMemory": 4096,
+
+    // Search and File Watching Optimizations
+    "search.useIgnoreFiles": true,
+    "search.useGlobalIgnoreFiles": true,
+    "search.followSymlinks": false,
+    "search.smartCase": true,
+    "files.watcherExclude": {
+      "**/node_modules/**": true,
+      "**/dist/**": true,
+      "**/build/**": true,
+      "**/.git/**": true,
+      "**/logs/**": true,
+      "**/*.log": true,
+      "**/uploads/**": true,
+      "**/.next/**": true,
+      "**/out/**": true,
+      "**/.cache/**": true,
+      "**/coverage/**": true
+    },
+    "files.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+      "**/build": true,
+      "**/.git": true,
+      "**/logs": true,
+      "**/*.log": true,
+      "**/uploads": true,
+      "**/.next": true,
+      "**/out": true,
+      "**/.cache": true,
+      "**/coverage": true
+    },
+
+    // Editor Performance Optimizations
+    "editor.renderWhitespace": "none",
+    "editor.renderLineHighlight": "line",
+    "editor.codeLens": false,
+    "editor.minimap.enabled": false,
+    "editor.semanticHighlighting.enabled": false,
+    "editor.bracketPairColorization.enabled": false,
+    "editor.guides.bracketPairs": false,
+    "editor.lightbulb.enabled": "off",
+
+    // Memory and Resource Optimizations
+    "extensions.ignoreRecommendations": true,
+    "git.enabled": true,
+    "git.autorefresh": false,
+    "git.autofetch": false,
+    "emmet.showSuggestionsAsSnippets": false,
+
+    // File Operations
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    },
+    "powershell.cwd": "🏗️ Root"
+  },
+  "extensions": {
+    "recommendations": [
+      "bradlc.vscode-tailwindcss",
+      "esbenp.prettier-vscode",
+      "ms-vscode.vscode-typescript-next",
+      "prisma.prisma",
+      "ms-vscode.vscode-json"
+    ],
+    "unwantedRecommendations": [
+      "ms-vscode.vscode-json",
+      "hookyqr.beautify",
+      "ms-vscode.sublime-keybindings"
+    ]
+  }
+}
