@@ -16,36 +16,39 @@ pipeline {
             }
         }
 
-        // stage('Inject .env Files') {
-        //     steps {
-        //         echo "🔑 Injecting environment files..."
-        //         sh '''
-        //             sudo chown -R jenkins:jenkins ${WORKSPACE}
-        //             sudo chmod -R 775 ${WORKSPACE}
-        //         '''
-        //         withCredentials([file(credentialsId: 'auth-service-env-file', variable: 'AUTH_ENV')]) {
-        //             sh 'cp $AUTH_ENV services/auth-service/.env'
-        //         }
-        //         withCredentials([file(credentialsId: 'api-gateway-env-file', variable: 'GATEWAY_ENV')]) {
-        //             sh 'cp $GATEWAY_ENV apps/api-gateway/.env'
-        //         }
-        //         withCredentials([file(credentialsId: 'admin-portal-env-file', variable: 'ADMIN_ENV')]) {
-        //             sh 'cp $ADMIN_ENV apps/admin-portal/.env'
-        //         }
-        //         withCredentials([file(credentialsId: 'client-store-service-env-file', variable: 'CLIENT_ENV')]) {
-        //             sh 'cp $CLIENT_ENV services/client-store-service/.env'
-        //         }
-        //         withCredentials([file(credentialsId: 'rider-service-env-file', variable: 'RIDER_ENV')]) {
-        //             sh 'cp $RIDER_ENV services/rider-service/.env'
-        //         }
-        //         withCredentials([file(credentialsId: 'vehicle-service-env-file', variable: 'VEHICLE_ENV')]) {
-        //             sh 'cp $VEHICLE_ENV services/vehicle-service/.env'
-        //         }
-        //         withCredentials([file(credentialsId: 'spare-parts-service-env-file', variable: 'SPARE_ENV')]) {
-        //             sh 'cp $SPARE_ENV services/spare-parts-service/.env'
-        //         }
-        //     }
-        // }
+        // Uncomment this stage if you want to inject .env files
+        /*
+        stage('Inject .env Files') {
+            steps {
+                echo "🔑 Injecting environment files..."
+                sh '''
+                    sudo chown -R jenkins:jenkins ${WORKSPACE}
+                    sudo chmod -R 775 ${WORKSPACE}
+                '''
+                withCredentials([file(credentialsId: 'auth-service-env-file', variable: 'AUTH_ENV')]) {
+                    sh 'cp $AUTH_ENV services/auth-service/.env'
+                }
+                withCredentials([file(credentialsId: 'api-gateway-env-file', variable: 'GATEWAY_ENV')]) {
+                    sh 'cp $GATEWAY_ENV apps/api-gateway/.env'
+                }
+                withCredentials([file(credentialsId: 'admin-portal-env-file', variable: 'ADMIN_ENV')]) {
+                    sh 'cp $ADMIN_ENV apps/admin-portal/.env'
+                }
+                withCredentials([file(credentialsId: 'client-store-service-env-file', variable: 'CLIENT_ENV')]) {
+                    sh 'cp $CLIENT_ENV services/client-store-service/.env'
+                }
+                withCredentials([file(credentialsId: 'rider-service-env-file', variable: 'RIDER_ENV')]) {
+                    sh 'cp $RIDER_ENV services/rider-service/.env'
+                }
+                withCredentials([file(credentialsId: 'vehicle-service-env-file', variable: 'VEHICLE_ENV')]) {
+                    sh 'cp $VEHICLE_ENV services/vehicle-service/.env'
+                }
+                withCredentials([file(credentialsId: 'spare-parts-service-env-file', variable: 'SPARE_ENV')]) {
+                    sh 'cp $SPARE_ENV services/spare-parts-service/.env'
+                }
+            }
+        }
+        */
 
         stage('Deploy to EC2') {
             steps {
@@ -79,10 +82,12 @@ pipeline {
                         }
                     }
 
-                    // 🔑 Use SSH key stored in Jenkins
                     sshagent(['EC2_SSH_KEY']) {
                         if (commitCount <= 1 || changedFolders.isEmpty()) {
                             echo "🌍 Performing full initial deployment..."
+                            // Ensure main deploy directory exists
+                            sh "ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} 'mkdir -p ${DEPLOY_DIR}'"
+                            // Rsync everything
                             sh """
                                 rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" ${WORKSPACE}/ ${EC2_USER}@${EC2_HOST}:${DEPLOY_DIR}/
                             """
@@ -90,6 +95,9 @@ pipeline {
                             echo "📦 Changed folders detected: ${changedFolders}"
                             for (folder in changedFolders) {
                                 echo "🔄 Updating folder: ${folder}"
+                                // Create folder on EC2 if not exists
+                                sh "ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} 'mkdir -p ${DEPLOY_DIR}/${folder}'"
+                                // Rsync the changed folder
                                 sh """
                                     rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" ${WORKSPACE}/${folder}/ ${EC2_USER}@${EC2_HOST}:${DEPLOY_DIR}/${folder}/
                                 """
