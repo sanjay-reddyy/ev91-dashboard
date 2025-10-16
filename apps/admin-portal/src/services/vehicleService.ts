@@ -570,27 +570,27 @@ export const vehicleService = {
   // Damage operations
   async getDamageRecords(filters: any = {}, pagination: PaginationParams = {}) {
     const params = { ...filters, ...pagination };
-    const response = await vehicleApi.get("/damage", { params });
+    const response = await vehicleApi.get("/damages", { params });
     return response.data;
   },
 
   async getDamageRecord(id: string) {
-    const response = await vehicleApi.get(`/damage/${id}`);
+    const response = await vehicleApi.get(`/damages/${id}`);
     return response.data;
   },
 
   async createDamageRecord(damageData: Partial<DamageRecord>) {
-    const response = await vehicleApi.post("/damage", damageData);
+    const response = await vehicleApi.post("/damages", damageData);
     return response.data;
   },
 
   async updateDamageRecord(id: string, damageData: Partial<DamageRecord>) {
-    const response = await vehicleApi.put(`/damage/${id}`, damageData);
+    const response = await vehicleApi.put(`/damages/${id}`, damageData);
     return response.data;
   },
 
   async updateDamageStatus(id: string, status: string, notes?: string) {
-    const response = await vehicleApi.patch(`/damage/${id}/status`, {
+    const response = await vehicleApi.patch(`/damages/${id}/status`, {
       status,
       notes,
     });
@@ -769,7 +769,7 @@ export const vehicleService = {
         };
       }
 
-      const response = await vehicleApi.get("/analytics");
+      const response = await analyticsApi.get("/vehicles/stats");
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 401) {
