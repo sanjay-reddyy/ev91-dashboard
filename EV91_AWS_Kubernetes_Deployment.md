@@ -73,16 +73,20 @@ docker build -t sanjub07/vehicle-service:latest ./vehicle-service
 ### Run containers locally (if you want quick smoke test)
 
 ```powershell
-docker run -d --name admin-portal --network ev91-network -p 3003:3003 sanjub07/admin-portal:latest
-docker run -d --name api-gateway --network ev91-network -p 8000:8000 sanjub07/api-gateway:latest
-docker run -d --name auth-service --network ev91-network -p 4001:4001 sanjub07/auth-service:latest
-docker run -d --name client-store-service --network ev91-network -p 3006:3006 sanjub07/client-store-service:latest
-docker run -d --name rider-service --network ev91-network -p 4005:4005 sanjub07/rider-service:latest
-docker run -d --name spare-parts-service --network ev91-network -p 4010:4010 `
-  -e "DATABASE_URL=postgresql://$($RDS_USER)%40$($RDS_PASSWORD)@ev91-postgres:5432/ev91platform?schema=spare_parts" `
-  -e "JWT_SECRET=$JWT_SECRET" `
-  sanjub07/spare-parts-service:latest
-docker run -d --name vehicle-service --network ev91-network -p 4004:4004 sanjub07/vehicle-service:latest
+docker run -d --name admin-portal --network ev91-network -p 3003:3003 -e "JWT_SECRET=super-secret-jwt-key-for-ev91-platform-change-in-production-2025" sanjub07/admin-portal:latest
+
+docker run -d --name api-gateway --network ev91-network -p 8000:8000 -e "JWT_SECRET=super-secret-jwt-key-for-ev91-platform-change-in-production-2025" sanjub07/api-gateway:latest
+
+docker run -d --name auth-service --network ev91-network -p 4001:4001 -e "DATABASE_URL=postgresql://postgres:Sanju%40123@ev91-postgres:5432/ev91platform?schema=auth" -e "JWT_SECRET=super-secret-jwt-key-for-ev91-platform-change-in-production-2025" sanjub07/auth-service:latest
+
+docker run -d --name client-store-service --network ev91-network -p 3006:3006 -e "DATABASE_URL=postgresql://postgres:Sanju%40123@ev91-postgres:5432/ev91platform?schema=client_store" -e "JWT_SECRET=super-secret-jwt-key-for-ev91-platform-change-in-production-2025" sanjub07/client-store-service:latest
+
+docker run -d --name rider-service --network ev91-network -p 4005:4005 -e "DATABASE_URL=postgresql://postgres:Sanju%40123@ev91-postgres:5432/ev91platform?schema=rider" -e "JWT_SECRET=super-secret-jwt-key-for-ev91-platform-change-in-production-2025" sanjub07/rider-service:latest
+
+docker run -d --name spare-parts-service --network ev91-network -p 4010:4010 -e "DATABASE_URL=postgresql://postgres:Sanju%40123@ev91-postgres:5432/ev91platform?schema=spare_parts" -e "JWT_SECRET=super-secret-jwt-key-for-ev91-platform-change-in-production-2025" sanjub07/spare-parts-service:latest
+
+docker run -d --name vehicle-service --network ev91-network -p 4004:4004 -e "DATABASE_URL=postgresql://postgres:Sanju%40123@ev91-postgres:5432/ev91platform?schema=vehicle" -e "JWT_SECRET=super-secret-jwt-key-for-ev91-platform-change-in-production-2025" sanjub07/vehicle-service:latest
+
 ```
 
 > URL-encoding note: when using `@` in URLs, encode to `%40`. Example shown above uses `%40` style for clarity.
