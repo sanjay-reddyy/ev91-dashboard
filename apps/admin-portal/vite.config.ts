@@ -53,6 +53,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      "/api/v1/analytics": {
+        target: "http://localhost:4004",
+        changeOrigin: true,
+        secure: false,
+      },
       "/api": {
         target: "http://localhost:4001",
         changeOrigin: true,
