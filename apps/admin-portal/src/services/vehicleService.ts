@@ -1,10 +1,9 @@
 import axios from "axios";
 
 const VEHICLE_SERVICE_URL =
-  import.meta.env.VITE_VEHICLE_API_URL || "http://localhost:8000/api/vehicles";
+  import.meta.env.VITE_VEHICLE_API_URL || "/api";
 const VEHICLE_ANALYTICS_URL =
-  import.meta.env.VITE_VEHICLE_ANALYTICS_URL ||
-  "http://localhost:4004/api/v1/analytics";
+  import.meta.env.VITE_VEHICLE_ANALYTICS_URL || "/api/v1/analytics";
 
 // Configure axios instance for general vehicle service
 const vehicleApi = axios.create({
@@ -731,8 +730,7 @@ export const vehicleService = {
 
   // Get media file view URL (returns presigned URL for S3 files)
   getMediaViewUrl(mediaId: string, redirect: boolean = true) {
-    const baseUrl =
-      vehicleApi.defaults.baseURL || "http://localhost:4004/api/vehicles";
+    const baseUrl = vehicleApi.defaults.baseURL || "/api/vehicles";
     return `${baseUrl}/media/view/${mediaId}${
       redirect ? "" : "?redirect=false"
     }`;
