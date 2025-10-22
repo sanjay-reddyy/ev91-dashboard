@@ -4,6 +4,12 @@ import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
+// Debug middleware
+router.use((req, res, next) => {
+  console.log(`[DEBUG] Analytics route hit: ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 /**
  * @swagger
  * /api/v1/analytics/vehicles:

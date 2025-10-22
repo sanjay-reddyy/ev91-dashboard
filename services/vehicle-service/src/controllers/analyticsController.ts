@@ -7,11 +7,24 @@ import { Logger } from '../utils';
 /**
  * Get comprehensive vehicle analytics
  */
-export const getVehicleAnalytics = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+export const getVehicleAnalytics = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<any> => {
   Logger.info('Get vehicle analytics request received', { userId: req.user?.id });
   
   const { period = 'month', hubId } = req.query;
   
+  // Debug connection
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    Logger.info('Database connection test successful');
+  } catch (error) {
+    Logger.error('Database connection test failed:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Database connection error',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+
   try {
     // Calculate date range based on period
     const now = new Date();

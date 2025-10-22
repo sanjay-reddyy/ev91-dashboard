@@ -109,6 +109,12 @@ app.use("/api/v1/unified-service", authMiddleware, unifiedServiceRoutes);
 app.use("/api/v1/damage", authMiddleware, damageRoutes);
 app.use("/api/v1/handover", authMiddleware, handoverRoutes);
 app.use("/api/v1/media", authMiddleware, mediaRoutes);
+// Debug middleware for analytics routes
+app.use("/api/v1/analytics", (req, res, next) => {
+  console.log(`[DEBUG] Analytics request received: ${req.method} ${req.path}`);
+  next();
+});
+
 app.use("/api/v1/analytics", authMiddleware, analyticsRoutes); // Re-enabled analytics routes
 app.use("/api/v1/oems", authMiddleware, oemRoutes);
 app.use("/api/v1/vehicle-models", authMiddleware, vehicleModelRoutes);
