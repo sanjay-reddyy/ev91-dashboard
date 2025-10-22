@@ -613,17 +613,14 @@ export const vehicleService = {
   async getDamageRecord(id: string) {
     try {
       const response = await vehicleApi.get(`/damage/${id}`);
-      return {
-        data: response.data.data,
-        success: true
-      };
+      if (!response.data) {
+        throw new Error("No data received from server");
+      }
+      // Return the damage record directly instead of wrapping it
+      return response.data.data || response.data;
     } catch (error: any) {
       console.error("Error fetching damage record:", error);
-      return {
-        data: null,
-        success: false,
-        message: error.response?.data?.message || "Failed to fetch damage record"
-      };
+      throw new Error(error.response?.data?.message || "Failed to fetch damage record");
     }
   },
 

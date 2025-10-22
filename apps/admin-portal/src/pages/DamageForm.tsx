@@ -45,7 +45,19 @@ const damageSchema = yup.object().shape({
   resolutionNotes: yup.string().nullable(),
 });
 
-type DamageFormData = yup.InferType<typeof damageSchema>;
+interface DamageFormData {
+  vehicleId: string;
+  damageType: 'Cosmetic' | 'Mechanical' | 'Electrical' | 'Structural';
+  severity: 'Minor' | 'Moderate' | 'Major';
+  location: string;
+  description: string;
+  estimatedCost: number | null;
+  actualCost: number | null;
+  reportedBy: string;
+  assignedTechnician: string;
+  damageStatus: 'Reported' | 'Under Review' | 'Approved for Repair' | 'In Repair' | 'Resolved' | 'Rejected';
+  resolutionNotes: string;
+}
 
 const DamageForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -120,19 +132,22 @@ const DamageForm: React.FC = () => {
         try {
           setLoading(true);
           const damageRecord = await vehicleService.getDamageRecord(id);
+          if (!damageRecord) {
+            throw new Error('No damage record found');
+          }
           
           // Reset form with damage record data
           reset({
-            vehicleId: damageRecord.vehicleId,
-            damageType: damageRecord.damageType,
-            severity: damageRecord.severity,
-            location: damageRecord.location,
-            description: damageRecord.description,
+            vehicleId: damageRecord.vehicleId || '',
+            damageType: damageRecord.damageType || 'Cosmetic',
+            severity: damageRecord.severity || 'Minor',
+            location: damageRecord.location || '',
+            description: damageRecord.description || '',
             estimatedCost: damageRecord.estimatedCost || null,
             actualCost: damageRecord.actualCost || null,
-            reportedBy: damageRecord.reportedBy,
+            reportedBy: damageRecord.reportedBy || '',
             assignedTechnician: damageRecord.assignedTechnician || '',
-            damageStatus: damageRecord.damageStatus,
+            damageStatus: damageRecord.damageStatus || 'Reported',
             resolutionNotes: damageRecord.resolutionNotes || '',
           });
         } catch (error) {
@@ -152,27 +167,43 @@ const DamageForm: React.FC = () => {
       setSubmitting(true);
       setError(null);
 
+      // Clean up the data before sending
       const damageData = {
         ...data,
-        estimatedCost: data.estimatedCost || undefined,
-        actualCost: data.actualCost || undefined,
-        assignedTechnician: data.assignedTechnician || undefined,
-        resolutionNotes: data.resolutionNotes || undefined,
+        estimatedCost: data.estimatedCost || null,
+        actualCost: data.actualCost || null,
+        assignedTechnician: data.assignedTechnician || null,
+        resolutionNotes: data.resolutionNotes || null,
+        // Ensure all required fields are present
+        vehicleId: data.vehicleId,
+        damageType: data.damageType,
+        severity: data.severity,
+        location: data.location,
+        description: data.description,
+        reportedBy: data.reportedBy,
+        damageStatus: data.damageStatus
       };
 
       if (isEdit && id) {
-        await vehicleService.updateDamageRecord(id, damageData);
+        const result = await vehicleService.updateDamageRecord(id, damageData);
+        if (!result || !result.success) {
+          throw new Error(result?.message || 'Failed to update damage record');
+        }
       } else {
-        await vehicleService.createDamageRecord({
+        const result = await vehicleService.createDamageRecord({
           ...damageData,
-          reportedDate: new Date(),
+          reportedDate: new Date().toISOString(),
         });
+        if (!result || !result.success) {
+          throw new Error(result?.message || 'Failed to create damage record');
+        }
       }
 
+      // If successful, navigate back to the list
       navigate('/damage');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving damage record:', error);
-      setError('Failed to save damage record. Please try again.');
+      setError(error.message || 'Failed to save damage record. Please try again.');
     } finally {
       setSubmitting(false);
     }
