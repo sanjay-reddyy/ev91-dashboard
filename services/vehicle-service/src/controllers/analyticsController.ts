@@ -8,20 +8,27 @@ import { Logger } from '../utils';
  * Get comprehensive vehicle analytics
  */
 export const getVehicleAnalytics = asyncHandler(async (req: AuthenticatedRequest, res: Response): Promise<any> => {
-  Logger.info('Get vehicle analytics request received', { userId: req.user?.id });
+  const startTime = Date.now();
+  Logger.info('Get vehicle analytics request received', { 
+    userId: req.user?.id,
+    path: req.path,
+    query: req.query 
+  });
   
   const { period = 'month', hubId } = req.query;
   
-  // Debug connection
+  // Debug connection and check database health
   try {
     await prisma.$queryRaw`SELECT 1`;
     Logger.info('Database connection test successful');
   } catch (error) {
-    Logger.error('Database connection test failed:', error);
-    return res.status(500).json({
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    Logger.error('Database connection test failed:', { error: errorMsg });
+    return res.status(503).json({
       success: false,
-      message: 'Database connection error',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      message: 'Database service unavailable',
+      error: errorMsg,
+      timestamp: new Date().toISOString()
     });
   }
 
