@@ -35,7 +35,9 @@ router.use((req, res, next) => {
  *       200:
  *         description: Vehicle analytics data
  */
+// Vehicle analytics endpoints
 router.get('/vehicles', getVehicleAnalytics);
+router.get('/vehicles/stats', getVehicleAnalytics); // Add stats endpoint as alias
 
 /**
  * @swagger

@@ -771,12 +771,14 @@ export const vehicleService = {
 
       // Try main analytics endpoint first
       try {
-        const response = await analyticsApi.get("/vehicles");
+        const response = await analyticsApi.get("/vehicles/stats");
+        console.log("Analytics response:", response);
         return response.data;
       } catch (analyticsError) {
         console.warn("Analytics endpoint failed, trying fallback:", analyticsError);
         // Fallback to vehicle service direct endpoint
-        const fallbackResponse = await vehicleApi.get("/stats");
+        const fallbackResponse = await vehicleApi.get("/vehicles/stats");
+        console.log("Fallback response:", fallbackResponse);
         return fallbackResponse.data;
       }
     } catch (error: any) {
