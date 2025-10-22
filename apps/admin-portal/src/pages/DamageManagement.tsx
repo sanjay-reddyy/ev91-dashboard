@@ -124,10 +124,23 @@ const DamageManagementPage: React.FC = () => {
         { page: page + 1, limit: rowsPerPage, sortBy: 'reportedDate', sortOrder: 'desc' }
       );
 
-      setDamageRecords(response.data);
-      setTotalCount(response.pagination?.totalItems || 0);
+      if (Array.isArray(response.data)) {
+        setDamageRecords(response.data);
+        setTotalCount(response.pagination?.totalItems || response.data.length);
+      } else {
+        console.warn('Received invalid damage records format:', response);
+        setDamageRecords([]);
+        setTotalCount(0);
+        setSnackbar({
+          open: true,
+          message: 'Unable to load damage records. Invalid data format.',
+          severity: 'warning',
+        });
+      }
     } catch (error) {
       console.error('Error loading damage records:', error);
+      setDamageRecords([]);
+      setTotalCount(0);
       setSnackbar({
         open: true,
         message: 'Failed to load damage records. Please try again.',
