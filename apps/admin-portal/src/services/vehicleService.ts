@@ -626,27 +626,66 @@ export const vehicleService = {
 
   async createDamageRecord(damageData: Partial<DamageRecord>) {
     try {
-      const response = await vehicleApi.post("/damage", damageData);
+      // Ensure required fields are present and in correct format
+      const formattedData = {
+        vehicleId: damageData.vehicleId,
+        damageType: damageData.damageType,
+        severity: damageData.severity,
+        location: damageData.location,
+        description: damageData.description,
+        reportedBy: damageData.reportedBy,
+        damageStatus: damageData.damageStatus || 'Reported',
+        reportedDate: damageData.reportedDate || new Date().toISOString(),
+        // Optional fields
+        estimatedCost: damageData.estimatedCost !== undefined ? Number(damageData.estimatedCost) : null,
+        actualCost: damageData.actualCost !== undefined ? Number(damageData.actualCost) : null,
+        assignedTechnician: damageData.assignedTechnician || null,
+        resolutionNotes: damageData.resolutionNotes || null
+      };
+
+      const response = await vehicleApi.post("/damage", formattedData);
       return {
-        data: response.data.data,
+        data: response.data.data || response.data,
         success: true
       };
     } catch (error: any) {
       console.error("Error creating damage record:", error);
-      throw new Error(error.response?.data?.message || "Failed to create damage record");
+      console.log("Request data:", damageData);
+      console.log("Response:", error.response?.data);
+      return {
+        data: null,
+        success: false,
+        message: error.response?.data?.message || "Failed to create damage record"
+      };
     }
   },
 
   async updateDamageRecord(id: string, damageData: Partial<DamageRecord>) {
     try {
-      const response = await vehicleApi.put(`/damage/${id}`, damageData);
+      // Ensure data is properly formatted
+      const formattedData = {
+        ...damageData,
+        estimatedCost: damageData.estimatedCost !== undefined ? Number(damageData.estimatedCost) : null,
+        actualCost: damageData.actualCost !== undefined ? Number(damageData.actualCost) : null,
+        assignedTechnician: damageData.assignedTechnician || null,
+        resolutionNotes: damageData.resolutionNotes || null,
+        reportedDate: damageData.reportedDate || new Date().toISOString()
+      };
+
+      const response = await vehicleApi.put(`/damage/${id}`, formattedData);
       return {
-        data: response.data.data,
+        data: response.data.data || response.data,
         success: true
       };
     } catch (error: any) {
       console.error("Error updating damage record:", error);
-      throw new Error(error.response?.data?.message || "Failed to update damage record");
+      console.log("Request data:", damageData);
+      console.log("Response:", error.response?.data);
+      return {
+        data: null,
+        success: false,
+        message: error.response?.data?.message || "Failed to update damage record"
+      };
     }
   },
 

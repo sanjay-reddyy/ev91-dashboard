@@ -174,38 +174,34 @@ const DamageForm: React.FC = () => {
       setSubmitting(true);
       setError(null);
 
-      // Clean up the data before sending
+      // Clean up and validate the data before sending
       const damageData = {
-        ...data,
-        estimatedCost: data.estimatedCost || null,
-        actualCost: data.actualCost || null,
-        assignedTechnician: data.assignedTechnician || null,
-        resolutionNotes: data.resolutionNotes || null,
-        // Ensure all required fields are present
         vehicleId: data.vehicleId,
         damageType: data.damageType,
         severity: data.severity,
-        location: data.location,
-        description: data.description,
-        reportedBy: data.reportedBy,
-        damageStatus: data.damageStatus
+        location: data.location.trim(),
+        description: data.description.trim(),
+        reportedBy: data.reportedBy.trim(),
+        damageStatus: data.damageStatus,
+        // Handle optional numeric fields
+        estimatedCost: data.estimatedCost !== null ? parseFloat(data.estimatedCost.toString()) : null,
+        actualCost: data.actualCost !== null ? parseFloat(data.actualCost.toString()) : null,
+        // Handle optional text fields
+        assignedTechnician: data.assignedTechnician?.trim() || null,
+        resolutionNotes: data.resolutionNotes?.trim() || null,
+        reportedDate: new Date().toISOString()
       };
 
+      let result;
       if (isEdit && id) {
-        const result = await vehicleService.updateDamageRecord(id, {
-          ...damageData,
-          reportedDate: damageData.reportedDate || new Date().toISOString()
-        });
+        result = await vehicleService.updateDamageRecord(id, damageData);
         if (!result.success) {
-          throw new Error(result.data?.message || 'Failed to update damage record');
+          throw new Error(result.message || 'Failed to update damage record');
         }
       } else {
-        const result = await vehicleService.createDamageRecord({
-          ...damageData,
-          reportedDate: new Date().toISOString()
-        });
+        result = await vehicleService.createDamageRecord(damageData);
         if (!result.success) {
-          throw new Error(result.data?.message || 'Failed to create damage record');
+          throw new Error(result.message || 'Failed to create damage record');
         }
       }
 
