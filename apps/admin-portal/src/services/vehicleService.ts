@@ -569,8 +569,8 @@ export const vehicleService = {
 
   // Damage operations
   async getDamageRecords(filters: any = {}, pagination: PaginationParams = {}) {
-    const params = { ...filters, ...pagination };
-    const response = await analyticsApi.get("/vehicle/damages/list", { params });
+  const params = { ...filters, ...pagination };
+  const response = await analyticsApi.get("/damages", { params });
     return response.data;
   },
 
