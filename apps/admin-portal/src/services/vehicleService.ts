@@ -769,7 +769,7 @@ export const vehicleService = {
         };
       }
 
-      const response = await analyticsApi.get("/vehicle/stats");
+  const response = await analyticsApi.get("/vehicles");
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 401) {
