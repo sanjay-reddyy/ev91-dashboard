@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const VEHICLE_SERVICE_URL =
-  import.meta.env.VITE_VEHICLE_API_URL || "/api";
+  import.meta.env.VITE_VEHICLE_API_URL || "/api/v1";
 const VEHICLE_ANALYTICS_URL =
   import.meta.env.VITE_VEHICLE_ANALYTICS_URL || "/api/v1/analytics";
 
@@ -868,24 +868,28 @@ export const vehicleService = {
   // OEM operations
   async getOEMs(filters: { active?: boolean; preferred?: boolean } = {}) {
     try {
-      // Double-check token before making request
-      const token = localStorage.getItem("authToken");
-      if (!token) {
-        console.warn("No auth token available for getOEMs");
-        return { data: [], message: "Authentication required" };
+      const response = await vehicleApi.get("/oems", { 
+        params: filters,
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      if (!response.data || !response.data.data) {
+        console.warn("Invalid OEM response format:", response);
+        return { data: [], message: "No OEMs found" };
       }
-
-      const response = await vehicleApi.get("/oems", { params: filters });
       return response.data;
     } catch (error: any) {
-      if (error.response?.status === 401) {
-        console.warn("Authentication required for OEMs data");
-        // Return empty data structure to prevent UI errors
-        return { data: [], message: "Authentication required" };
-      }
-      // For other errors, still return a safe default
       console.error("Error in getOEMs:", error);
-      return { data: [], message: error.message || "Error fetching OEMs" };
+      if (error.response?.status === 404) {
+        return { data: [], message: "No OEMs found" };
+      }
+      return { 
+        data: [], 
+        message: error.response?.data?.message || error.message || "Error fetching OEMs",
+        error: error.response?.data?.error || error.message
+      };
     }
   },
 

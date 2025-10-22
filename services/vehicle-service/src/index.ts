@@ -114,6 +114,10 @@ app.use("/api/v1/unified-service", authMiddleware, unifiedServiceRoutes);
 app.use("/api/v1/damage", authMiddleware, damageRoutes);
 app.use("/api/v1/handover", authMiddleware, handoverRoutes);
 app.use("/api/v1/media", authMiddleware, mediaRoutes);
+
+// OEM and Vehicle Model routes without auth temporarily for testing
+app.use("/api/v1/oems", oemRoutes);
+app.use("/api/v1/vehicle-models", vehicleModelRoutes);
 // Analytics routes with enhanced debugging and error handling
 app.use("/api/v1/analytics", (req, res, next) => {
   console.log(`[${new Date().toISOString()}] Analytics request:`, {
