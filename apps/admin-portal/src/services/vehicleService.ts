@@ -769,8 +769,16 @@ export const vehicleService = {
         };
       }
 
-  const response = await analyticsApi.get("/vehicles");
-      return response.data;
+      // Try main analytics endpoint first
+      try {
+        const response = await analyticsApi.get("/vehicles");
+        return response.data;
+      } catch (analyticsError) {
+        console.warn("Analytics endpoint failed, trying fallback:", analyticsError);
+        // Fallback to vehicle service direct endpoint
+        const fallbackResponse = await vehicleApi.get("/stats");
+        return fallbackResponse.data;
+      }
     } catch (error: any) {
       if (error.response?.status === 401) {
         console.warn(
