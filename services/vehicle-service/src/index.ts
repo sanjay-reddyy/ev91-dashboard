@@ -116,16 +116,50 @@ app.use("/api/v1/handover", authMiddleware, handoverRoutes);
 app.use("/api/v1/media", authMiddleware, mediaRoutes);
 // Analytics routes with enhanced debugging and error handling
 app.use("/api/v1/analytics", (req, res, next) => {
-  console.log(`[DEBUG] Analytics request received: ${req.method} ${req.originalUrl}`);
-  console.log('Query params:', req.query);
-  console.log('Headers:', req.headers);
+  console.log(`[${new Date().toISOString()}] Analytics request:`, {
+    method: req.method,
+    path: req.originalUrl,
+    query: req.query,
+    headers: req.headers
+  });
   next();
 });
 
-// Mount analytics routes without auth temporarily for testing
-app.use("/api/v1/analytics", analyticsRoutes);
+// Add direct health check for analytics
+app.get("/api/v1/analytics/health", (req, res) => {
+  res.json({
+    status: "OK",
+    timestamp: new Date().toISOString(),
+    service: "Vehicle Analytics"
+  });
+});
 
-// Catch-all route for analytics to debug missing endpoints
+// Mount analytics routes with retry logic
+app.use("/api/v1/analytics", async (req, res, next) => {
+  try {
+    // Test database connection before proceeding
+    await prisma.$queryRaw`SELECT 1`;
+    next();
+  } catch (error) {
+    console.error("Database connection failed:", error);
+    res.status(503).json({
+      error: "Service temporarily unavailable",
+      message: "Database connection failed",
+      timestamp: new Date().toISOString()
+    });
+  }
+}, analyticsRoutes);
+
+// Analytics error handler
+app.use("/api/v1/analytics", (error: any, req: Request, res: Response, next: any) => {
+  console.error("Analytics error:", error);
+  res.status(500).json({
+    error: "Internal server error",
+    message: error.message,
+    path: req.path,
+    timestamp: new Date().toISOString()
+  });
+});
 app.use("/api/v1/analytics/*", (req, res) => {
   console.log(`[WARNING] Unhandled analytics route: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
