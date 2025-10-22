@@ -307,12 +307,12 @@ export interface DamageRecord {
   severity: "Minor" | "Moderate" | "Major";
   location: string;
   description: string;
-  estimatedCost?: number;
-  actualCost?: number;
-  reportedDate: Date;
+  estimatedCost: number | null;
+  actualCost: number | null;
+  reportedDate: string;
   reportedBy: string;
-  resolvedDate?: Date;
-  resolutionNotes?: string;
+  resolvedDate?: string | null;
+  resolutionNotes: string | null;
   damageStatus:
     | "Reported"
     | "Under Review"
@@ -320,9 +320,9 @@ export interface DamageRecord {
     | "In Repair"
     | "Resolved"
     | "Rejected";
-  assignedTechnician?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  assignedTechnician: string | null;
+  createdAt: string;
+  updatedAt: string;
   vehicle?: Vehicle;
   mediaFiles?: MediaFile[];
 }

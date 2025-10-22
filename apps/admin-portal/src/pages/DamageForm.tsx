@@ -54,9 +54,10 @@ interface DamageFormData {
   estimatedCost: number | null;
   actualCost: number | null;
   reportedBy: string;
-  assignedTechnician: string;
+  assignedTechnician: string | null;
   damageStatus: 'Reported' | 'Under Review' | 'Approved for Repair' | 'In Repair' | 'Resolved' | 'Rejected';
-  resolutionNotes: string;
+  resolutionNotes: string | null;
+  reportedDate?: string;
 }
 
 const DamageForm: React.FC = () => {
@@ -136,19 +137,25 @@ const DamageForm: React.FC = () => {
             throw new Error('No damage record found');
           }
           
+          const record = damageRecord.data;
+          if (!record) {
+            throw new Error('No damage record found');
+          }
+          
           // Reset form with damage record data
           reset({
-            vehicleId: damageRecord.vehicleId || '',
-            damageType: damageRecord.damageType || 'Cosmetic',
-            severity: damageRecord.severity || 'Minor',
-            location: damageRecord.location || '',
-            description: damageRecord.description || '',
-            estimatedCost: damageRecord.estimatedCost || null,
-            actualCost: damageRecord.actualCost || null,
-            reportedBy: damageRecord.reportedBy || '',
-            assignedTechnician: damageRecord.assignedTechnician || '',
-            damageStatus: damageRecord.damageStatus || 'Reported',
-            resolutionNotes: damageRecord.resolutionNotes || '',
+            vehicleId: record.vehicleId || '',
+            damageType: record.damageType || 'Cosmetic',
+            severity: record.severity || 'Minor',
+            location: record.location || '',
+            description: record.description || '',
+            estimatedCost: record.estimatedCost || null,
+            actualCost: record.actualCost || null,
+            reportedBy: record.reportedBy || '',
+            assignedTechnician: record.assignedTechnician || null,
+            damageStatus: record.damageStatus || 'Reported',
+            resolutionNotes: record.resolutionNotes || null,
+            reportedDate: record.reportedDate
           });
         } catch (error) {
           console.error('Error loading damage record:', error);
@@ -185,17 +192,20 @@ const DamageForm: React.FC = () => {
       };
 
       if (isEdit && id) {
-        const result = await vehicleService.updateDamageRecord(id, damageData);
-        if (!result || !result.success) {
-          throw new Error(result?.message || 'Failed to update damage record');
+        const result = await vehicleService.updateDamageRecord(id, {
+          ...damageData,
+          reportedDate: damageData.reportedDate || new Date().toISOString()
+        });
+        if (!result.success) {
+          throw new Error(result.data?.message || 'Failed to update damage record');
         }
       } else {
         const result = await vehicleService.createDamageRecord({
           ...damageData,
-          reportedDate: new Date().toISOString(),
+          reportedDate: new Date().toISOString()
         });
-        if (!result || !result.success) {
-          throw new Error(result?.message || 'Failed to create damage record');
+        if (!result.success) {
+          throw new Error(result.data?.message || 'Failed to create damage record');
         }
       }
 
