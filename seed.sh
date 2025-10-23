@@ -31,8 +31,8 @@ docker-compose exec -T vehicle-service sh -c "
 
 # rider-service
 docker-compose exec -T rider-service sh -c "
-  npx prisma db push &&
-  npx prisma db seed &&
+  npx prisma db push --accept-data-loss &&
+  npx prisma db seed
 "
 
 echo "✅ All seeds completed successfully!"
