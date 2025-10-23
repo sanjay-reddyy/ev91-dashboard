@@ -1,6 +1,5 @@
 import React from 'react'
 import { Box, Toolbar } from '@mui/material'
-import { useAuth } from '../../contexts/AuthContext'
 import Topbar from './Topbar'
 import Sidebar from './Sidebar'
 
@@ -15,15 +14,8 @@ export default function Layout({ children }: LayoutProps) {
     setMobileOpen(!mobileOpen)
   }
 
-  const { isAuthenticated } = useAuth()
-
-  // If not authenticated, don't render the layout
-  if (!isAuthenticated) {
-    return null
-  }
-
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex' }}>
       <Topbar onMenuClick={handleDrawerToggle} />
       <Sidebar open={mobileOpen} onClose={handleDrawerToggle} />
       <Box
@@ -32,7 +24,6 @@ export default function Layout({ children }: LayoutProps) {
           flexGrow: 1,
           p: 3,
           width: { lg: `calc(100% - 240px)` },
-          backgroundColor: 'background.default',
         }}
       >
         <Toolbar />

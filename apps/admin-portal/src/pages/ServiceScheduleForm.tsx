@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -33,15 +33,15 @@ import {
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format, addDays } from 'date-fns';
 
-// ensure Vehicle type exists or use `any`
 interface Vehicle {
   id: string;
-  registrationNumber?: string;
-  vehicleNumber?: string;
-  name?: string;
-  mileage?: number;
-  model?: any;
-  [key: string]: any;
+  registrationNumber: string;
+  model: {
+    name: string;
+    oem: { name: string };
+  };
+  mileage: number;
+  operationalStatus: string;
 }
 
 interface ServiceCenter {
@@ -52,12 +52,11 @@ interface ServiceCenter {
   specialties: string[];
 }
 
-const ServiceScheduleForm: React.FC = (props) => {
+const ServiceScheduleForm: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const preselectedVehicleId = searchParams.get('vehicleId');
 
-  // always keep vehicles as an array to avoid `.find` / `.map` on undefined
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [serviceCenters, setServiceCenters] = useState<ServiceCenter[]>([]);
   const [loading, setLoading] = useState(false);
@@ -100,41 +99,24 @@ const ServiceScheduleForm: React.FC = (props) => {
     fetchServiceCenters();
   }, []);
 
-  async function fetchVehicles() {
+  const fetchVehicles = async () => {
     try {
-      const apiBaseRaw = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003';
-      // normalize base: remove trailing slashes and any trailing /api or /api/vN to avoid duplication
-      let apiRoot = apiBaseRaw.replace(/\/+$/, '');
-      apiRoot = apiRoot.replace(/\/api(\/v\d+)?$/i, '');
-      const token = localStorage.getItem('authToken') || localStorage.getItem('token') || '';
-
-      const res = await fetch(`${apiRoot}/api/vehicles`, {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch(`${apiBaseUrl}/vehicles`, {
         headers: {
           'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+          ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+        }
       });
-
-      // guard against non-JSON responses and non-OK status
-      const json = await (async () => {
-        try { return await res.json(); } catch { return null; }
-      })();
-
-      if (!res.ok) {
-        console.warn('[ServiceScheduleForm] vehicles endpoint returned', res.status, json);
-        setVehicles([]);
-        return;
+      const data = await response.json();
+      if (data.success) {
+        setVehicles(data.data.vehicles);
       }
-
-      // backend may return { vehicles: [...] } or { data: [...] } or an array directly
-      const list = json?.vehicles || json?.data || (Array.isArray(json) ? json : []);
-      setVehicles(Array.isArray(list) ? list : []);
-      console.debug('[ServiceScheduleForm] loaded vehicles', Array.isArray(list) ? list.length : 0);
-    } catch (err) {
-      console.error('Error fetching vehicles:', err);
-      setVehicles([]); // safe fallback
+    } catch (error) {
+      console.error('Error fetching vehicles:', error);
     }
-  }
+  };
 
   const fetchServiceCenters = async () => {
     try {
@@ -172,28 +154,17 @@ const ServiceScheduleForm: React.FC = (props) => {
     setLoading(true);
 
     try {
-      // normalize base as in fetchVehicles
-      let apiRoot = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003').replace(/\/+$/, '');
-      apiRoot = apiRoot.replace(/\/api(\/v\d+)?$/i, '');
-      const token = localStorage.getItem('authToken') || localStorage.getItem('token') || '';
-
-      const response = await fetch(`${apiRoot}/api/vehicles/service/schedule`, {
+      const response = await fetch('/api/vehicles/service/schedule', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          estimatedCost: parseFloat(formData.estimatedCost as any) || 0
+          estimatedCost: parseFloat(formData.estimatedCost) || 0
         })
       });
 
-      const data = await (async () => {
-        try { return await response.json(); } catch { return null; }
-      })();
-
-      if (response.ok && data?.success) {
+      const data = await response.json();
+      if (data.success) {
         setSnackbar({
           open: true,
           message: 'Service scheduled successfully',
@@ -201,10 +172,9 @@ const ServiceScheduleForm: React.FC = (props) => {
         });
         setTimeout(() => {
           navigate('/services');
-        }, 1200);
+        }, 2000);
       } else {
-        console.warn('[ServiceScheduleForm] schedule failed', response.status, data);
-        throw new Error(data?.message || 'Failed to schedule service');
+        throw new Error(data.message);
       }
     } catch (error) {
       setSnackbar({
@@ -266,15 +236,10 @@ const ServiceScheduleForm: React.FC = (props) => {
                 <Grid container spacing={3}>
                   <Grid item xs={12}>
                     <Autocomplete
-                      options={vehicles || []}
-                      getOptionLabel={(vehicle: any) => {
-                        if (!vehicle) return '';
-                        const reg = vehicle.registrationNumber || vehicle.vehicleNumber || `#${vehicle.id}`;
-                        const oem = vehicle?.model?.oem?.name || vehicle?.model?.oemName || vehicle?.oem?.name || '';
-                        const model = vehicle?.model?.name || vehicle?.modelName || '';
-                        const rest = [oem, model].filter(Boolean).join(' ');
-                        return rest ? `${reg} - ${rest}` : `${reg}`;
-                      }}
+                      options={vehicles ?? []}
+                      getOptionLabel={(vehicle) =>
+                        `${vehicle.registrationNumber} - ${vehicle.model.oem.name} ${vehicle.model.name}`
+                      }
                       value={selectedVehicle || null}
                       onChange={(_, newValue) => {
                         setFormData({...formData, vehicleId: newValue?.id || ''});
@@ -287,19 +252,17 @@ const ServiceScheduleForm: React.FC = (props) => {
                           helperText="Search by registration number or model"
                         />
                       )}
-                      renderOption={(props, vehicle: any) => (
+                      renderOption={(props, vehicle) => (
                         <Box component="li" {...props}>
                           <Avatar sx={{ mr: 2, bgcolor: 'primary.light' }}>
                             <VehicleIcon />
                           </Avatar>
                           <Box>
                             <Typography variant="body1" fontWeight="bold">
-                              {vehicle?.registrationNumber || vehicle?.vehicleNumber || `#${vehicle?.id}`}
+                              {vehicle.registrationNumber}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                              {(vehicle?.model?.oem?.name || vehicle?.modelName || '')}
-                              {vehicle?.model?.name ? ` ${vehicle.model.name}` : ''}{' '}
-                              • {vehicle?.mileage ?? 'N/A'} km
+                              {vehicle.model.oem.name} {vehicle.model.name} • {vehicle.mileage} km
                             </Typography>
                           </Box>
                         </Box>

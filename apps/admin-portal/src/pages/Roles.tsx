@@ -1086,7 +1086,7 @@ export default function RolesAndPermissions() {
       </Card>
 
       {/* Role Dialog */}
-      <Dialog open={openRoleDialog} onClose={handleCloseRoleDialog} maxWidth="md" fullWidth keepMounted>
+      <Dialog open={openRoleDialog} onClose={handleCloseRoleDialog} maxWidth="md" fullWidth>
         <DialogTitle>
           {editingRole ? 'Edit Role' : 'Add New Role'}
         </DialogTitle>

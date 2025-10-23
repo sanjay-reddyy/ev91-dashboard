@@ -1,18 +1,17 @@
-# -----------------------------
-# Builder stage
-# -----------------------------
-FROM node:20-alpine AS builder
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files and install dependencies
+# Copy package files
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
 
-# Copy all source code
+# Install dependencies
+RUN npm install
+
+# Copy source code
 COPY . .
 
-# Build arguments (optional, for URLs, etc.)
+# Accept build arguments for environment variables
 ARG VITE_API_URL
 ARG VITE_AUTH_API_URL
 ARG VITE_AUTH_SERVICE_URL
@@ -20,7 +19,7 @@ ARG VITE_TEAM_API_URL
 ARG VITE_VEHICLE_API_URL
 ARG VITE_CLIENT_STORE_API_URL
 
-# Inject build-time environment variables for Vite
+# Set environment variables for build
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_AUTH_API_URL=$VITE_AUTH_API_URL
 ENV VITE_AUTH_SERVICE_URL=$VITE_AUTH_SERVICE_URL
@@ -28,24 +27,11 @@ ENV VITE_TEAM_API_URL=$VITE_TEAM_API_URL
 ENV VITE_VEHICLE_API_URL=$VITE_VEHICLE_API_URL
 ENV VITE_CLIENT_STORE_API_URL=$VITE_CLIENT_STORE_API_URL
 
-# Build the app
+# Build the application with environment variables
 RUN npm run build
 
-# -----------------------------
-# Production stage
-# -----------------------------
-FROM node:20-alpine AS production
+# Expose port (matching docker-compose)
+EXPOSE 3000
 
-WORKDIR /app
-
-# Copy build output from builder stage
-COPY --from=builder /app/dist ./dist
-
-# Install a simple static file server
-RUN npm install -g serve
-
-# Expose port
-EXPOSE 3003
-
-# Serve the built static files
-CMD ["serve", "-s", "dist", "-l", "3003"]
+# Start the application in preview mode on port 3000
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "3000"]

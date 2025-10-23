@@ -45,20 +45,7 @@ const damageSchema = yup.object().shape({
   resolutionNotes: yup.string().nullable(),
 });
 
-interface DamageFormData {
-  vehicleId: string;
-  damageType: 'Cosmetic' | 'Mechanical' | 'Electrical' | 'Structural';
-  severity: 'Minor' | 'Moderate' | 'Major';
-  location: string;
-  description: string;
-  estimatedCost: number | null;
-  actualCost: number | null;
-  reportedBy: string;
-  assignedTechnician: string | null;
-  damageStatus: 'Reported' | 'Under Review' | 'Approved for Repair' | 'In Repair' | 'Resolved' | 'Rejected';
-  resolutionNotes: string | null;
-  reportedDate?: string;
-}
+type DamageFormData = yup.InferType<typeof damageSchema>;
 
 const DamageForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -68,8 +55,7 @@ const DamageForm: React.FC = () => {
   const [loading, setLoading] = useState(isEdit);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // always keep vehicles as an array to avoid `.find` on undefined
-  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loadingVehicles, setLoadingVehicles] = useState(true);
 
   const {
@@ -100,30 +86,23 @@ const DamageForm: React.FC = () => {
   const statusOptions = ['Reported', 'Under Review', 'Approved for Repair', 'In Repair', 'Resolved', 'Rejected'];
   
   const selectedStatus = watch('damageStatus');
-  const watchVehicleId = watch('vehicleId');
-  // guard against undefined and ensure we always use an array
-  const selectedVehicle = (vehicles || []).find((v: any) => v.id === watchVehicleId) || null;
 
   // Load vehicles for selection
   useEffect(() => {
-    (async () => {
+    const loadVehicles = async () => {
       try {
-        // vehicleService.getVehicles is the canonical method — fallback to getAll if needed
-        try {
-          const response = (typeof (vehicleService as any).getVehicles === 'function')
-            ? await (vehicleService as any).getVehicles()
-            : await (vehicleService as any).getAll();
-          const list = response?.vehicles || response?.data || (Array.isArray(response) ? response : []);
-          setVehicles(Array.isArray(list) ? list : []);
-        } catch (err) {
-          console.error('[DamageForm] failed to load vehicles', err);
-          setVehicles([]);
-        }
-      } catch (err) {
-        console.error('[DamageForm] failed to load vehicles', err);
-        setVehicles([]);
+        setLoadingVehicles(true);
+        const response = await vehicleService.getVehicles({}, { page: 1, limit: 1000 });
+        setVehicles(response.data);
+      } catch (error) {
+        console.error('Error loading vehicles:', error);
+        setError('Failed to load vehicles');
+      } finally {
+        setLoadingVehicles(false);
       }
-    })();
+    };
+    
+    loadVehicles();
   }, []);
 
   // Load damage record for editing
@@ -133,29 +112,20 @@ const DamageForm: React.FC = () => {
         try {
           setLoading(true);
           const damageRecord = await vehicleService.getDamageRecord(id);
-          if (!damageRecord) {
-            throw new Error('No damage record found');
-          }
-          
-          const record = damageRecord.data;
-          if (!record) {
-            throw new Error('No damage record found');
-          }
           
           // Reset form with damage record data
           reset({
-            vehicleId: record.vehicleId || '',
-            damageType: record.damageType || 'Cosmetic',
-            severity: record.severity || 'Minor',
-            location: record.location || '',
-            description: record.description || '',
-            estimatedCost: record.estimatedCost || null,
-            actualCost: record.actualCost || null,
-            reportedBy: record.reportedBy || '',
-            assignedTechnician: record.assignedTechnician || null,
-            damageStatus: record.damageStatus || 'Reported',
-            resolutionNotes: record.resolutionNotes || null,
-            reportedDate: record.reportedDate
+            vehicleId: damageRecord.vehicleId,
+            damageType: damageRecord.damageType,
+            severity: damageRecord.severity,
+            location: damageRecord.location,
+            description: damageRecord.description,
+            estimatedCost: damageRecord.estimatedCost || null,
+            actualCost: damageRecord.actualCost || null,
+            reportedBy: damageRecord.reportedBy,
+            assignedTechnician: damageRecord.assignedTechnician || '',
+            damageStatus: damageRecord.damageStatus,
+            resolutionNotes: damageRecord.resolutionNotes || '',
           });
         } catch (error) {
           console.error('Error loading damage record:', error);
@@ -174,42 +144,27 @@ const DamageForm: React.FC = () => {
       setSubmitting(true);
       setError(null);
 
-      // Clean up and validate the data before sending
       const damageData = {
-        vehicleId: data.vehicleId,
-        damageType: data.damageType,
-        severity: data.severity,
-        location: data.location.trim(),
-        description: data.description.trim(),
-        reportedBy: data.reportedBy.trim(),
-        damageStatus: data.damageStatus,
-        // Handle optional numeric fields
-        estimatedCost: data.estimatedCost !== null ? parseFloat(data.estimatedCost.toString()) : null,
-        actualCost: data.actualCost !== null ? parseFloat(data.actualCost.toString()) : null,
-        // Handle optional text fields
-        assignedTechnician: data.assignedTechnician?.trim() || null,
-        resolutionNotes: data.resolutionNotes?.trim() || null,
-        reportedDate: new Date().toISOString()
+        ...data,
+        estimatedCost: data.estimatedCost || undefined,
+        actualCost: data.actualCost || undefined,
+        assignedTechnician: data.assignedTechnician || undefined,
+        resolutionNotes: data.resolutionNotes || undefined,
       };
 
-      let result;
       if (isEdit && id) {
-        result = await vehicleService.updateDamageRecord(id, damageData);
-        if (!result.success) {
-          throw new Error(result.message || 'Failed to update damage record');
-        }
+        await vehicleService.updateDamageRecord(id, damageData);
       } else {
-        result = await vehicleService.createDamageRecord(damageData);
-        if (!result.success) {
-          throw new Error(result.message || 'Failed to create damage record');
-        }
+        await vehicleService.createDamageRecord({
+          ...damageData,
+          reportedDate: new Date(),
+        });
       }
 
-      // If successful, navigate back to the list
       navigate('/damage');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving damage record:', error);
-      setError(error.message || 'Failed to save damage record. Please try again.');
+      setError('Failed to save damage record. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -265,13 +220,34 @@ const DamageForm: React.FC = () => {
                 <Controller
                   name="vehicleId"
                   control={control}
-                  defaultValue={selectedVehicle?.id ?? ''} // stable default
                   render={({ field }) => (
-                    <TextField select label="Vehicle" {...field}>
-                      {(vehicles || []).map((v: any) => (
-                        <MenuItem key={v.id} value={v.id}>{v.registrationNumber}</MenuItem>
-                      ))}
-                    </TextField>
+                    <Autocomplete
+                      {...field}
+                      options={vehicles}
+                      getOptionLabel={(vehicle) => 
+                        `${vehicle.model?.oem?.name || 'Unknown'} ${vehicle.model?.name || 'Unknown'} ${vehicle.year || ''} - ${vehicle.registrationNumber}`
+                      }
+                      value={vehicles.find(v => v.id === field.value) || null}
+                      onChange={(_, value) => field.onChange(value?.id || '')}
+                      loading={loadingVehicles}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Vehicle *"
+                          error={!!errors.vehicleId}
+                          helperText={errors.vehicleId?.message}
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {loadingVehicles ? <CircularProgress color="inherit" size={20} /> : null}
+                                {params.InputProps.endAdornment}
+                              </>
+                            ),
+                          }}
+                        />
+                      )}
+                    />
                   )}
                 />
               </Grid>

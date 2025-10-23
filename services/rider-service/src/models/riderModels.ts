@@ -10,11 +10,15 @@ export interface Rider extends PrismaRider {
 
 // Helper function to map database riders to the extended type
 export function mapRider(rider: PrismaRider): Rider {
-  // Compute isActive from registrationStatus (if isActive not yet in DB)
-  const isActive = (rider as any).isActive ?? rider.registrationStatus === "COMPLETED";
+  // During the transition period, if isActive doesn't exist in database,
+  // compute it from registrationStatus
+  if (!("isActive" in rider)) {
+    return {
+      ...(rider as any),
+      isActive: (rider as any).registrationStatus === "COMPLETED",
+    } as Rider;
+  }
 
-  return {
-    ...rider,
-    isActive,
-  };
+  // Once database is migrated, this will use the actual field
+  return rider as Rider;
 }

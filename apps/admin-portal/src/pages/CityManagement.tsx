@@ -701,7 +701,7 @@ const CityManagement: React.FC = () => {
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Status</Typography>
-                <Box mb={1}>{getStatusChip(selectedCity)}</Box>
+                <Box gutterBottom>{getStatusChip(selectedCity)}</Box>
               </Grid>
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" color="text.secondary">Population</Typography>

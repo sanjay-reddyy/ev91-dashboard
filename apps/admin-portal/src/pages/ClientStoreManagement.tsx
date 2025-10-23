@@ -82,8 +82,8 @@ import {
   ClientFilters,
   StoreFilters,
 } from '../types/clientStore';
-import { getCities, getClients, getAccountManagers, createClient } from '../services/clientStoreService';
 import * as clientStoreService from '../services/clientStoreService';
+import { getAccountManagers } from '../services/clientStore';
 
 // Tab Panel Component
 interface TabPanelProps {
@@ -221,15 +221,6 @@ const DEFAULT_STORE_VALUES: StoreFormData = {
   storeStatus: 'active',
 };
 
-const normalizePriority = (val?: string) => {
-  if (!val) return '';
-  const v = String(val).trim().toLowerCase();
-  if (v === 'high') return 'High';
-  if (v === 'medium') return 'Medium';
-  if (v === 'low') return 'Low';
-  return '';
-};
-
 const ClientStoreManagement: React.FC = () => {
   // Tab state
   const [activeTab, setActiveTab] = useState(0);
@@ -319,9 +310,9 @@ const ClientStoreManagement: React.FC = () => {
     try {
       setLoadingDropdowns(true);
       const [citiesResponse, statesResponse, clientsResponse, accountManagersResponse] = await Promise.all([
-        getCities(),
+        clientStoreService.getCities(),
         clientStoreService.getStates(),
-        getClients({ limit: 1000 }), // For store form client dropdown
+        clientStoreService.getClients({ limit: 1000 }), // For store form client dropdown
         getAccountManagers(),
       ]);
 
@@ -555,15 +546,15 @@ const ClientStoreManagement: React.FC = () => {
 
       if (editingClient) {
         const result = await clientStoreService.updateClient(editingClient.id, data);
-        if (result && result.success) {
+        if (result.success) {
           setSuccess('Client updated successfully');
         } else {
           setError(result.message || 'Failed to update client');
           return;
         }
       } else {
-        const result = await createClient(data);
-        if (result && result.success) {
+        const result = await clientStoreService.createClient(data);
+        if (result.success) {
           setSuccess('Client created successfully');
         } else {
           setError(result.message || 'Failed to create client');
@@ -1463,7 +1454,7 @@ const ClientStoreManagement: React.FC = () => {
         onClose={handleCloseClientDialog}
         maxWidth="md"
         fullWidth
-        keepMounted
+        keepMounted={false}
       >
         <form onSubmit={handleClientSubmit(onClientSubmit)}>
           <DialogTitle>
@@ -1690,18 +1681,14 @@ const ClientStoreManagement: React.FC = () => {
                   control={clientControl}
                   render={({ field }) => (
                     <FormControl fullWidth>
-                      <InputLabel id="client-priority-label">Priority</InputLabel>
-                      <Select
-                        labelId="client-priority-label"
-                        name="clientPriority"
-                        value={normalizePriority(field.value) || ''}
-                        label="Priority"
-                        onChange={(e) => field.onChange(normalizePriority(String(e.target.value)))}
-                        >
-                        <MenuItem value="">None</MenuItem>
-                        <MenuItem value="High">High</MenuItem>
-                        <MenuItem value="Medium">Medium</MenuItem>
-                        <MenuItem value="Low">Low</MenuItem>
+                      <InputLabel>Priority</InputLabel>
+                      <Select {...field} label="Priority">
+                        <MenuItem value="">Not Set</MenuItem>
+                        {CLIENT_PRIORITIES.map((priority) => (
+                          <MenuItem key={priority} value={priority}>
+                            {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                          </MenuItem>
+                        ))}
                       </Select>
                     </FormControl>
                   )}
@@ -1860,7 +1847,7 @@ const ClientStoreManagement: React.FC = () => {
         onClose={handleCloseStoreDialog}
         maxWidth="lg"
         fullWidth
-        keepMounted
+        keepMounted={false}
       >
         <form onSubmit={handleStoreSubmit(onStoreSubmit)}>
           <DialogTitle>
@@ -2254,8 +2241,7 @@ const ClientStoreManagement: React.FC = () => {
             </Button>
           </DialogActions>
         </form>
-           </Dialog>
-     
+      </Dialog>
 
       {/* Success Snackbar */}
       <Snackbar

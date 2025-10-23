@@ -1,74 +1,19 @@
 /**
- * rider-pagination-fixer.ts
+ * RiderPaginationFixer.js
  *
- * TypeScript version of RiderPaginationFixer with proper typing for building
+ * This is a comprehensive diagnostic and fix tool for the rider service pagination issues.
+ * It performs several checks and fixes to ensure that the rider pagination works correctly.
  */
 
-interface Pagination {
-  totalItems?: number;
-  totalPages?: number;
-  itemsPerPage?: number;
-  currentPage?: number;
-}
-
-interface RiderData {
-  id?: string;
-  [key: string]: any;
-}
-
-interface ApiResponse {
-  success: boolean;
-  data?: RiderData[];
-  pagination?: Pagination;
-  [key: string]: any;
-}
-
-interface TestResult {
-  page: number;
-  success?: boolean;
-  itemsReturned?: number;
-  expectedItemStart?: number;
-  expectedItemEnd?: number;
-  firstItemId?: string;
-  pagination?: Pagination;
-}
-
-interface DiagnosticReport {
-  timestamp: string;
-  browser: string;
-  environment: string;
-  apiUrls: {
-    rider: string;
-    auth: string;
-    vehicle: string;
-  };
-  tests: {
-    firstPage?: {
-      success?: boolean;
-      dataCount?: number;
-      pagination?: Pagination;
-      firstItem?: string;
-    };
-    secondPage?: {
-      success?: boolean;
-      dataCount?: number;
-      pagination?: Pagination;
-      firstItem?: string;
-    };
-    paginationWorking?: boolean;
-    error?: string;
-  };
-}
-
 // Helper function to display test results
-function displayResults(results: TestResult[]): void {
+function displayResults(results) {
   console.table(
     results.map((r) => ({
       page: r.page,
       success: r.success,
       itemsReturned: r.itemsReturned,
       expectedRange: `${r.expectedItemStart}-${r.expectedItemEnd}`,
-      firstItemId: r.firstItemId ? r.firstItemId.substring(0, 8) + "..." : undefined,
+      firstItemId: r.firstItemId?.substring(0, 8) + "...",
     }))
   );
 }
@@ -76,16 +21,17 @@ function displayResults(results: TestResult[]): void {
 /**
  * Run a comprehensive test to diagnose rider pagination issues
  */
-async function diagnoseRiderPagination(): Promise<{ results: TestResult[]; recommendations: string[] }> {
+async function diagnoseRiderPagination() {
   console.log("🔍 Running comprehensive rider pagination diagnostics...");
 
   // Step 1: Check the service ports
   console.log("\n1️⃣ Checking service ports...");
   try {
-    const riderServiceUrl: string =
+    const riderServiceUrl =
       import.meta.env.VITE_RIDER_API_URL || "http://localhost:8000/api/riders";
     console.log(`Configured Rider Service URL: ${riderServiceUrl}`);
 
+    // If using port 4004 instead of 4005, that could be an issue
     if (riderServiceUrl.includes(":4004")) {
       console.error(
         "❌ ERROR: Rider Service URL is using port 4004, but should be 4005"
@@ -95,6 +41,7 @@ async function diagnoseRiderPagination(): Promise<{ results: TestResult[]; recom
       );
     }
 
+    // Check if API Gateway is properly configured
     const apiGatewayUrl = "http://localhost:8000/api";
     if (!riderServiceUrl.startsWith(apiGatewayUrl)) {
       console.warn("⚠️ Warning: Not using API Gateway for Rider Service");
@@ -109,24 +56,30 @@ async function diagnoseRiderPagination(): Promise<{ results: TestResult[]; recom
   const token = localStorage.getItem("authToken");
   if (!token) {
     console.error("❌ No auth token found in localStorage");
-    return { results: [], recommendations: [] };
+    return;
   }
 
-  const baseUrl: string =
+  const baseUrl =
     import.meta.env.VITE_RIDER_API_URL || "http://localhost:8000/api/riders";
-  const results: TestResult[] = [];
+  const results = [];
 
   try {
-    const initialResponse: ApiResponse = await fetch(`${baseUrl}?page=1&limit=10`, {
+    // Get total count first
+    const initialResponse = await fetch(`${baseUrl}?page=1&limit=10`, {
       headers: { Authorization: `Bearer ${token}` },
     }).then((res) => res.json());
 
-    const totalItems: number = initialResponse.pagination?.totalItems || 0;
+    const totalItems = initialResponse.pagination?.totalItems || 0;
     console.log(`Total riders: ${totalItems}`);
 
-    for (let page = 1; page <= Math.min(3, Math.ceil(totalItems / 10)); page++) {
+    // Test multiple pages
+    for (
+      let page = 1;
+      page <= Math.min(3, Math.ceil(totalItems / 10));
+      page++
+    ) {
       console.log(`Testing page ${page}...`);
-      const response: ApiResponse = await fetch(
+      const response = await fetch(
         `${baseUrl}?page=${page}&limit=10&_=${Date.now()}`,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -146,6 +99,7 @@ async function diagnoseRiderPagination(): Promise<{ results: TestResult[]; recom
 
     displayResults(results);
 
+    // Check for duplicate first items
     const firstItems = results.map((r) => r.firstItemId);
     const uniqueItems = [...new Set(firstItems)];
 
@@ -159,9 +113,11 @@ async function diagnoseRiderPagination(): Promise<{ results: TestResult[]; recom
     console.error("Failed to test API calls:", error);
   }
 
-  // Step 3: Check skip calculation
+  // Step 3: Check if the skip calculation is working
   console.log("\n3️⃣ Verifying backend skip/limit calculation...");
   console.log("Examining skip calculation in backend...");
+
+  // The skip calculation should be (page - 1) * limit
   console.log("✓ Skip calculation appears correct in adminRiders.ts");
   console.log("✓ Page parameter is properly parsed as integer in backend");
 
@@ -180,21 +136,32 @@ async function diagnoseRiderPagination(): Promise<{ results: TestResult[]; recom
 /**
  * Try to fix the pagination issue by clearing browser cache and storage
  */
-function fixBrowserCache(): { success: boolean; message: string; clearedItems: string[] } {
+function fixBrowserCache() {
   console.log("🧹 Clearing browser cache for pagination reset...");
-  const keysToRemove: string[] = [];
 
+  // Clear any potential cached API responses
+  console.log("Clearing localStorage pagination cache...");
+  const keysToRemove = [];
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (key && (key.includes("pagination") || key.includes("rider") || key.includes("page"))) {
+    if (
+      key &&
+      (key.includes("pagination") ||
+        key.includes("rider") ||
+        key.includes("page"))
+    ) {
       keysToRemove.push(key);
     }
   }
 
   keysToRemove.forEach((key) => localStorage.removeItem(key));
-  console.log(`Removed ${keysToRemove.length} potentially cached items from localStorage`);
-  console.log("✅ Browser cache cleared. Please refresh the page and try again.");
+  console.log(
+    `Removed ${keysToRemove.length} potentially cached items from localStorage`
+  );
 
+  console.log(
+    "✅ Browser cache cleared. Please refresh the page and try again."
+  );
   return {
     success: true,
     message: "Browser cache cleared. Refresh the page to apply changes.",
@@ -205,27 +172,36 @@ function fixBrowserCache(): { success: boolean; message: string; clearedItems: s
 /**
  * Create a diagnostic report for support
  */
-async function createDiagnosticReport(): Promise<{ success: boolean; message: string; report: DiagnosticReport }> {
+async function createDiagnosticReport() {
   console.log("📊 Generating rider pagination diagnostic report...");
 
-  const report: DiagnosticReport = {
+  const report = {
     timestamp: new Date().toISOString(),
     browser: navigator.userAgent,
     environment: import.meta.env.MODE || "unknown",
     apiUrls: {
-      rider: import.meta.env.VITE_RIDER_API_URL || "http://localhost:8000/api/riders",
-      auth: import.meta.env.VITE_AUTH_API_URL || "http://localhost:8000/api/auth",
-      vehicle: import.meta.env.VITE_VEHICLE_API_URL || "http://localhost:8000/api/vehicles",
+      rider:
+        import.meta.env.VITE_RIDER_API_URL ||
+        "http://localhost:8000/api/riders",
+      auth:
+        import.meta.env.VITE_AUTH_API_URL || "http://localhost:8000/api/auth",
+      vehicle:
+        import.meta.env.VITE_VEHICLE_API_URL ||
+        "http://localhost:8000/api/vehicles",
     },
     tests: {},
   };
 
+  // Test rider API pagination
   try {
     const token = localStorage.getItem("authToken");
     if (token) {
-      const initialResponse: ApiResponse = await fetch(`${report.apiUrls.rider}?page=1&limit=10`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then((res) => res.json());
+      const initialResponse = await fetch(
+        `${report.apiUrls.rider}?page=1&limit=10`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      ).then((res) => res.json());
 
       report.tests.firstPage = {
         success: initialResponse.success,
@@ -234,9 +210,12 @@ async function createDiagnosticReport(): Promise<{ success: boolean; message: st
         firstItem: initialResponse.data?.[0]?.id,
       };
 
-      const secondResponse: ApiResponse = await fetch(`${report.apiUrls.rider}?page=2&limit=10`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }).then((res) => res.json());
+      const secondResponse = await fetch(
+        `${report.apiUrls.rider}?page=2&limit=10`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      ).then((res) => res.json());
 
       report.tests.secondPage = {
         success: secondResponse.success,
@@ -246,27 +225,27 @@ async function createDiagnosticReport(): Promise<{ success: boolean; message: st
       };
 
       report.tests.paginationWorking =
-        report.tests.firstPage.firstItem !== report.tests.secondPage.firstItem &&
-        secondResponse.data?.length! > 0;
+        report.tests.firstPage.firstItem !==
+          report.tests.secondPage.firstItem && secondResponse.data?.length > 0;
     } else {
       report.tests.error = "No auth token available";
     }
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      report.tests.error = error.message;
-    } else {
-      report.tests.error = "Unknown error occurred";
-    }
+  } catch (error) {
+    report.tests.error = error.message;
   }
 
+  // Generate report string
   const reportStr = JSON.stringify(report, null, 2);
   console.log("Diagnostic Report:", report);
 
+  // Create downloadable report
   const blob = new Blob([reportStr], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `rider-pagination-report-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `rider-pagination-report-${new Date()
+    .toISOString()
+    .slice(0, 10)}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

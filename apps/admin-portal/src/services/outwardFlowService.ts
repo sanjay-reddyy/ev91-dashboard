@@ -150,10 +150,6 @@ export interface InstalledPart {
     displayName: string;
     partNumber: string;
   };
-  serviceRequest?: {
-    vehicleDetails?: { vehicleNumber?: string };
-    requestNumber?: string;
-  };
   quantity: number;
   unitCost: number;
   totalCost: number;
@@ -444,7 +440,6 @@ export const outwardFlowService = {
         notes?: string;
         mileageAtInstallation?: number;
         nextServiceMileage?: number;
-        installationDate?: string;
       }
     ) => {
       const response = await outwardFlowApi.post(
@@ -669,18 +664,6 @@ export const outwardFlowService = {
     },
   },
 
-  // Add missing costTracking and analytics objects
-  costTracking: {
-    getCostBreakdowns: async (params?: any) => {
-      const response = await outwardFlowApi.get('/cost-tracking/breakdowns', { params });
-      return response.data;
-    },
-    exportReport: async (params?: any) => {
-      const response = await outwardFlowApi.get('/cost-tracking/export', { params, responseType: 'blob' });
-      return response.data;
-    }
-  },
-
   // Analytics
   analytics: {
     // Get outward flow analytics
@@ -692,11 +675,6 @@ export const outwardFlowService = {
       groupBy?: "day" | "week" | "month";
     }) => {
       const response = await outwardFlowApi.get("/analytics", { params });
-      return response.data;
-    },
-
-    getCostTrends: async (params?: any) => {
-      const response = await outwardFlowApi.get('/analytics/cost-trends', { params });
       return response.data;
     },
 

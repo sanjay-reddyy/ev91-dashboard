@@ -1,24 +1,14 @@
 /**
- * New service methods to support the updated rider activation and registration flow.
- * These helpers are exported as standalone functions so they can be imported where needed.
- *
- * Note: This file uses minimal local types and a safe `api` fallback to avoid breaking the build.
- * Later you can replace the local types/imports with your project's actual `api`, `Rider` and `APIResponse` types.
+ * New service methods to support the updated rider activation and registration flow
+ * These methods handle the decoupled registration status and active status
  */
 
-type APIResponse<T> = { data: T };
-type Rider = any;
-
-// safe fallback for `api` — replace with your real api import if available
-const api: any = (globalThis as any).api || {
-    patch: async () => ({ data: {} }),
-    get: async () => ({ data: {} })
-};
+// Add this to the RiderService class in riderService.ts
 
 /**
  * Complete rider registration and verify KYC in one step
  */
-export async function completeRiderRegistration(
+async completeRiderRegistration(
   riderId: string,
   options: {
     kycVerified?: boolean;
@@ -32,7 +22,7 @@ export async function completeRiderRegistration(
 /**
  * Approve rider registration with option to activate
  */
-export async function approveRiderWithActivation(
+async approveRiderWithActivation(
   riderId: string,
   activateImmediately: boolean = true
 ): Promise<APIResponse<Rider>> {
@@ -46,7 +36,7 @@ export async function approveRiderWithActivation(
  * Get rider registration status details
  * This returns additional information about the registration progress
  */
-export async function getRiderRegistrationStatus(
+async getRiderRegistrationStatus(
   riderId: string
 ): Promise<APIResponse<{
   registrationStatus: string;
