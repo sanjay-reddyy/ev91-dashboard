@@ -21,6 +21,7 @@ export type {
   RiderEarning,
   RiderEarningsSummary,
   RiderPerformanceMetrics,
+  RiderBankDetails,
   APIResponse,
 } from "./riderService";
 

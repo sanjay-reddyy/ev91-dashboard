@@ -83,6 +83,28 @@ export interface Rider {
   completionRate?: number;
 }
 
+export interface RiderBankDetails {
+  id: string;
+  riderId: string;
+  accountNumber: string;
+  ifscCode: string;
+  bankName: string;
+  accountHolderName: string;
+  accountType: 'SAVINGS' | 'CURRENT';
+  branchName?: string;
+  branchAddress?: string;
+  isPrimary: boolean;
+  isActive: boolean;
+  isVerified: boolean;
+  verificationStatus: 'pending' | 'verified' | 'rejected';
+  verificationNotes?: string;
+  notes?: string;
+  proofDocumentType?: string;
+  proofDocumentUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface VehicleAssignment {
   id: string;
   make: string;
@@ -1286,6 +1308,97 @@ class RiderService {
     // We'll use "stats" directly
     const response = await api.get(`stats`);
     return response.data;
+  }
+
+  /**
+   * Get rider bank details
+   */
+  async getRiderBankDetails(riderId: string): Promise<APIResponse<RiderBankDetails[]>> {
+    try {
+      const response = await api.get(`/${riderId}/bank-details`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching rider bank details:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Add bank details for rider
+   */
+  async addBankDetails(riderId: string, bankDetails: Omit<RiderBankDetails, 'id' | 'riderId' | 'createdAt' | 'updatedAt' | 'isVerified' | 'verificationStatus'>): Promise<APIResponse<RiderBankDetails>> {
+    try {
+      const response = await api.post(`/${riderId}/bank-details`, bankDetails);
+      return response.data;
+    } catch (error) {
+      console.error("Error adding bank details:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update bank details
+   */
+  async updateBankDetails(riderId: string, bankDetailsId: string, bankDetails: Partial<RiderBankDetails>): Promise<APIResponse<RiderBankDetails>> {
+    try {
+      const response = await api.put(`/${riderId}/bank-details/${bankDetailsId}`, bankDetails);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating bank details:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete bank details
+   */
+  async deleteBankDetails(riderId: string, bankDetailsId: string): Promise<APIResponse<void>> {
+    try {
+      const response = await api.delete(`/${riderId}/bank-details/${bankDetailsId}`);
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting bank details:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Set primary bank account
+   */
+  async setPrimaryAccount(riderId: string, bankDetailsId: string): Promise<APIResponse<RiderBankDetails>> {
+    try {
+      const response = await api.put(`/${riderId}/bank-details/${bankDetailsId}/set-primary`);
+      return response.data;
+    } catch (error) {
+      console.error("Error setting primary account:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verify bank details
+   */
+  async verifyBankDetails(riderId: string, bankDetailsId: string, notes?: string): Promise<APIResponse<RiderBankDetails>> {
+    try {
+      const response = await api.put(`/${riderId}/bank-details/${bankDetailsId}/verify`, { notes });
+      return response.data;
+    } catch (error) {
+      console.error("Error verifying bank details:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reject bank details
+   */
+  async rejectBankDetails(riderId: string, bankDetailsId: string, notes: string): Promise<APIResponse<RiderBankDetails>> {
+    try {
+      const response = await api.put(`/${riderId}/bank-details/${bankDetailsId}/reject`, { notes });
+      return response.data;
+    } catch (error) {
+      console.error("Error rejecting bank details:", error);
+      throw error;
+    }
   }
 }
 

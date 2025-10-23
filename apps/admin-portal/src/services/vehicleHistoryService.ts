@@ -58,6 +58,8 @@ export interface RiderVehicleHistory {
   damagesReported?: string;
   riderFeedback?: string;
   issuesReported?: string;
+  hubCode?: string;
+  hubName?: string;
   vehicle?: any; // This can be a string (JSON) or an object from backend
 }
 

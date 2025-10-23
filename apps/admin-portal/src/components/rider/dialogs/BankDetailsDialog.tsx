@@ -68,7 +68,7 @@ const BankDetailsDialog: React.FC<BankDetailsDialogProps> = ({
       setAccountHolderName(bankDetails.accountHolderName);
       setAccountNumber(bankDetails.accountNumber);
       setConfirmAccountNumber(bankDetails.accountNumber);
-      setAccountType(bankDetails.accountType);
+      setAccountType(bankDetails.accountType as 'SAVINGS' | 'CURRENT');
       setIfscCode(bankDetails.ifscCode);
       setBankName(bankDetails.bankName);
       setBranchName(bankDetails.branchName || '');
@@ -76,7 +76,7 @@ const BankDetailsDialog: React.FC<BankDetailsDialogProps> = ({
       setIsPrimary(bankDetails.isPrimary);
       setNotes(bankDetails.notes || '');
       if (bankDetails.proofDocumentType) {
-        setProofType(bankDetails.proofDocumentType);
+        setProofType(bankDetails.proofDocumentType as 'PASSBOOK' | 'CANCELLED_CHEQUE' | 'BANK_STATEMENT');
       }
     } else {
       // Reset form for new entry
@@ -177,25 +177,23 @@ const BankDetailsDialog: React.FC<BankDetailsDialogProps> = ({
         branchName: branchName.trim() || undefined,
         branchAddress: branchAddress.trim() || undefined,
         isPrimary,
+        isActive: true, // New bank details are active by default
         notes: notes.trim() || undefined,
       };
 
       if (bankDetails) {
         // Update existing bank details
         await riderService.updateBankDetails(
+          riderId,
           bankDetails.id,
-          bankData,
-          proofDocument || undefined,
-          proofDocument ? proofType : undefined
+          bankData
         );
         setSuccess('Bank details updated successfully!');
       } else {
         // Add new bank details
         await riderService.addBankDetails(
           riderId,
-          bankData,
-          proofDocument!,
-          proofType
+          bankData
         );
         setSuccess('Bank details added successfully!');
       }

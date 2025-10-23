@@ -106,7 +106,7 @@ const BankDetailsSection: React.FC<BankDetailsSectionProps> = ({ riderId }) => {
     if (!deleteDialog.bankId) return;
 
     try {
-      await riderService.deleteBankDetails(deleteDialog.bankId);
+      await riderService.deleteBankDetails(riderId, deleteDialog.bankId);
       setDeleteDialog({ open: false, bankId: null });
       loadBankDetails();
     } catch (err: any) {
@@ -117,7 +117,7 @@ const BankDetailsSection: React.FC<BankDetailsSectionProps> = ({ riderId }) => {
 
   const handleSetPrimary = async (bankId: string) => {
     try {
-      await riderService.setPrimaryAccount(bankId);
+      await riderService.setPrimaryAccount(riderId, bankId);
       loadBankDetails();
     } catch (err: any) {
       console.error('Error setting primary account:', err);
@@ -130,13 +130,13 @@ const BankDetailsSection: React.FC<BankDetailsSectionProps> = ({ riderId }) => {
 
     try {
       if (verifyDialog.action === 'verify') {
-        await riderService.verifyBankDetails(verifyDialog.bankId, verificationNotes);
+        await riderService.verifyBankDetails(riderId, verifyDialog.bankId, verificationNotes);
       } else {
         if (!verificationNotes) {
           setError('Verification notes are required for rejection');
           return;
         }
-        await riderService.rejectBankDetails(verifyDialog.bankId, verificationNotes);
+        await riderService.rejectBankDetails(riderId, verifyDialog.bankId, verificationNotes);
       }
       setVerifyDialog({ open: false, bankId: null, action: null });
       setVerificationNotes('');
@@ -272,7 +272,7 @@ const BankDetailsSection: React.FC<BankDetailsSectionProps> = ({ riderId }) => {
                       <Tooltip title="View Bank Proof">
                         <IconButton
                           size="small"
-                          onClick={() => setDocumentPreview({ open: true, url: bank.proofDocumentUrl })}
+                          onClick={() => setDocumentPreview({ open: true, url: bank.proofDocumentUrl || null })}
                         >
                           <VisibilityIcon fontSize="small" />
                         </IconButton>
