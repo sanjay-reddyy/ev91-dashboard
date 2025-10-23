@@ -258,26 +258,65 @@ const RiderEarningsPage: React.FC = () => {
   }
 
   const handleSaveEarning = async () => {
+    // Validate required fields
+    if (!formData.riderId || !formData.storeId || !formData.orderId || !formData.orderDate) {
+      setSnackbar({
+        open: true,
+        message: 'Please fill in all required fields (Rider ID, Store, Order ID, Order Date)',
+        severity: 'error'
+      })
+      return
+    }
+
+    // Calculate total earning
+    const totalEarning = (
+      (formData.baseEarning || 0) +
+      (formData.distanceBonus || 0) +
+      (formData.timeBonus || 0) +
+      (formData.storeOfferBonus || 0) +
+      (formData.evBonus || 0) +
+      (formData.peakTimeBonus || 0) +
+      (formData.qualityBonus || 0) +
+      (formData.bonusEarning || 0) -
+      (formData.penaltyAmount || 0)
+    )
+
     try {
+      setLoading(true)
       const earningData = {
         ...formData,
+        totalEarning,
         orderDate: new Date(formData.orderDate).toISOString(),
         deliveryStartTime: formData.deliveryStartTime ? new Date(formData.deliveryStartTime).toISOString() : undefined,
         deliveryEndTime: formData.deliveryEndTime ? new Date(formData.deliveryEndTime).toISOString() : undefined,
       }
 
       if (editingEarning) {
-        await clientStoreService.updateRiderEarning(editingEarning.id, earningData)
-        setSnackbar({ open: true, message: 'Rider earning updated successfully', severity: 'success' })
+        const response = await clientStoreService.updateRiderEarning(editingEarning.id, earningData)
+        if (response.success) {
+          setSnackbar({ open: true, message: 'Rider earning updated successfully', severity: 'success' })
+          handleCloseDialog()
+          loadEarnings()
+        } else {
+          setSnackbar({ open: true, message: `Failed to update earning: ${response.message}`, severity: 'error' })
+        }
       } else {
-        await clientStoreService.createRiderEarning(earningData)
-        setSnackbar({ open: true, message: 'Rider earning created successfully', severity: 'success' })
+        const response = await clientStoreService.createRiderEarning(earningData)
+        if (response.success) {
+          setSnackbar({ open: true, message: 'Rider earning created successfully', severity: 'success' })
+          handleCloseDialog()
+          loadEarnings()
+        } else {
+          setSnackbar({ open: true, message: `Failed to create earning: ${response.message}`, severity: 'error' })
+        }
       }
-      handleCloseDialog()
-      loadEarnings()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving rider earning:', error)
-      setSnackbar({ open: true, message: 'Failed to save rider earning', severity: 'error' })
+      setSnackbar({ 
+        open: true, 
+        message: `Failed to ${editingEarning ? 'update' : 'create'} rider earning: ${error.message || 'Unknown error'}`, 
+        severity: 'error' 
+      })
     }
   }
 

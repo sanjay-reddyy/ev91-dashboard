@@ -17,7 +17,6 @@ export type {
   Rider,
   VehicleAssignment,
   RiderKYC,
-  RiderBankDetails,
   RiderOrder,
   RiderEarning,
   RiderEarningsSummary,

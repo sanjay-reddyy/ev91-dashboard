@@ -1,10 +1,9 @@
 import axios from "axios";
 
 const VEHICLE_SERVICE_URL =
-  import.meta.env.VITE_VEHICLE_API_URL || "http://localhost:8000/api/vehicles";
+  import.meta.env.VITE_VEHICLE_API_URL || "/api/vehicles";
 const VEHICLE_ANALYTICS_URL =
-  import.meta.env.VITE_VEHICLE_ANALYTICS_URL ||
-  "http://localhost:4004/api/v1/analytics";
+  import.meta.env.VITE_VEHICLE_ANALYTICS_URL || "/api/v1/analytics";
 
 // Configure axios instance for general vehicle service
 const vehicleApi = axios.create({
@@ -308,12 +307,12 @@ export interface DamageRecord {
   severity: "Minor" | "Moderate" | "Major";
   location: string;
   description: string;
-  estimatedCost?: number;
-  actualCost?: number;
-  reportedDate: Date;
+  estimatedCost: number | null;
+  actualCost: number | null;
+  reportedDate: string;
   reportedBy: string;
-  resolvedDate?: Date;
-  resolutionNotes?: string;
+  resolvedDate?: string | null;
+  resolutionNotes: string | null;
   damageStatus:
     | "Reported"
     | "Under Review"
@@ -321,9 +320,9 @@ export interface DamageRecord {
     | "In Repair"
     | "Resolved"
     | "Rejected";
-  assignedTechnician?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  assignedTechnician: string | null;
+  createdAt: string;
+  updatedAt: string;
   vehicle?: Vehicle;
   mediaFiles?: MediaFile[];
 }
@@ -384,20 +383,27 @@ export const vehicleService = {
     pagination: PaginationParams = {}
   ) {
     try {
+      // Default error response structure
+      const defaultResponse = {
+        vehicles: [],
+        pagination: {
+          totalItems: 0,
+          totalPages: 0,
+          currentPage: pagination.page || 1,
+        },
+      };
+
       // Double-check token before making request
       const token = localStorage.getItem("authToken");
       if (!token) {
         console.warn("No auth token available for getVehicles");
         return {
-          data: [],
-          pagination: {
-            totalItems: 0,
-            totalPages: 0,
-            currentPage: pagination.page || 1,
-          },
+          ...defaultResponse,
           message: "Authentication required",
         };
       }
+
+      console.log("🔍 Fetching vehicles with token:", token ? "Present" : "Missing");
 
       // Map frontend filter names to backend expected parameter names
       const mappedFilters = {
@@ -453,10 +459,19 @@ export const vehicleService = {
         url: "/vehicles",
       });
 
-      const response = await vehicleApi.get("/vehicles", { params });
+      const response = await vehicleApi.get("/vehicles", { 
+        params,
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      
       console.log("📡 API Response Debug:", {
-        dataLength:
-          response.data?.vehicles?.length || response.data?.data?.length || 0,
+        status: response.status,
+        statusText: response.statusText,
+        url: response.config.url,
+        dataLength: response.data?.vehicles?.length || response.data?.data?.length || 0,
         totalFromPagination: response.data?.pagination?.totalItems,
         responseStructure: Object.keys(response.data || {}),
       });
@@ -485,7 +500,7 @@ export const vehicleService = {
         );
         // Return empty but structured data instead of throwing
         return {
-          data: [],
+          vehicles: [],
           pagination: {
             totalItems: 0,
             totalPages: 0,
@@ -570,32 +585,124 @@ export const vehicleService = {
 
   // Damage operations
   async getDamageRecords(filters: any = {}, pagination: PaginationParams = {}) {
-    const params = { ...filters, ...pagination };
-    const response = await vehicleApi.get("/damage", { params });
-    return response.data;
+    try {
+      const params = { ...filters, ...pagination };
+      const response = await vehicleApi.get("/damage", { params });
+      return {
+        data: response.data.data || [],
+        pagination: response.data.pagination || {
+          totalItems: 0,
+          totalPages: 1,
+          currentPage: 1
+        }
+      };
+    } catch (error: any) {
+      console.error("Error fetching damage records:", error);
+      // Return safe default structure
+      return {
+        data: [],
+        pagination: {
+          totalItems: 0,
+          totalPages: 1,
+          currentPage: 1
+        }
+      };
+    }
   },
 
   async getDamageRecord(id: string) {
-    const response = await vehicleApi.get(`/damage/${id}`);
-    return response.data;
+    try {
+      const response = await vehicleApi.get(`/damage/${id}`);
+      if (!response.data) {
+        throw new Error("No data received from server");
+      }
+      // Return the damage record directly instead of wrapping it
+      return response.data.data || response.data;
+    } catch (error: any) {
+      console.error("Error fetching damage record:", error);
+      throw new Error(error.response?.data?.message || "Failed to fetch damage record");
+    }
   },
 
   async createDamageRecord(damageData: Partial<DamageRecord>) {
-    const response = await vehicleApi.post("/damage", damageData);
-    return response.data;
+    try {
+      // Ensure required fields are present and in correct format
+      const formattedData = {
+        vehicleId: damageData.vehicleId,
+        damageType: damageData.damageType,
+        severity: damageData.severity,
+        location: damageData.location,
+        description: damageData.description,
+        reportedBy: damageData.reportedBy,
+        damageStatus: damageData.damageStatus || 'Reported',
+        reportedDate: damageData.reportedDate || new Date().toISOString(),
+        // Optional fields
+        estimatedCost: damageData.estimatedCost !== undefined ? Number(damageData.estimatedCost) : null,
+        actualCost: damageData.actualCost !== undefined ? Number(damageData.actualCost) : null,
+        assignedTechnician: damageData.assignedTechnician || null,
+        resolutionNotes: damageData.resolutionNotes || null
+      };
+
+      const response = await vehicleApi.post("/damage", formattedData);
+      return {
+        data: response.data.data || response.data,
+        success: true
+      };
+    } catch (error: any) {
+      console.error("Error creating damage record:", error);
+      console.log("Request data:", damageData);
+      console.log("Response:", error.response?.data);
+      return {
+        data: null,
+        success: false,
+        message: error.response?.data?.message || "Failed to create damage record"
+      };
+    }
   },
 
   async updateDamageRecord(id: string, damageData: Partial<DamageRecord>) {
-    const response = await vehicleApi.put(`/damage/${id}`, damageData);
-    return response.data;
+    try {
+      // Ensure data is properly formatted
+      const formattedData = {
+        ...damageData,
+        estimatedCost: damageData.estimatedCost !== undefined ? Number(damageData.estimatedCost) : null,
+        actualCost: damageData.actualCost !== undefined ? Number(damageData.actualCost) : null,
+        assignedTechnician: damageData.assignedTechnician || null,
+        resolutionNotes: damageData.resolutionNotes || null,
+        reportedDate: damageData.reportedDate || new Date().toISOString()
+      };
+
+      const response = await vehicleApi.put(`/damage/${id}`, formattedData);
+      return {
+        data: response.data.data || response.data,
+        success: true
+      };
+    } catch (error: any) {
+      console.error("Error updating damage record:", error);
+      console.log("Request data:", damageData);
+      console.log("Response:", error.response?.data);
+      return {
+        data: null,
+        success: false,
+        message: error.response?.data?.message || "Failed to update damage record"
+      };
+    }
   },
 
   async updateDamageStatus(id: string, status: string, notes?: string) {
-    const response = await vehicleApi.patch(`/damage/${id}/status`, {
-      status,
-      notes,
-    });
-    return response.data;
+    try {
+      const response = await vehicleApi.patch(`/damage/${id}/status`, {
+        status,
+        notes
+      });
+      return {
+        data: response.data.data,
+        success: true
+      };
+    } catch (error: any) {
+      console.error("Error updating damage status:", error);
+      throw new Error(error.response?.data?.message || "Failed to update damage status");
+    }
   },
 
   // Document operations
@@ -731,8 +838,7 @@ export const vehicleService = {
 
   // Get media file view URL (returns presigned URL for S3 files)
   getMediaViewUrl(mediaId: string, redirect: boolean = true) {
-    const baseUrl =
-      vehicleApi.defaults.baseURL || "http://localhost:4004/api/vehicles";
+    const baseUrl = vehicleApi.defaults.baseURL || "/api/vehicles";
     return `${baseUrl}/media/view/${mediaId}${
       redirect ? "" : "?redirect=false"
     }`;
@@ -771,8 +877,18 @@ export const vehicleService = {
         };
       }
 
-      const response = await vehicleApi.get("/analytics");
-      return response.data;
+      // Try main analytics endpoint first
+      try {
+        const response = await analyticsApi.get("/vehicles/stats");
+        console.log("Analytics response:", response);
+        return response.data;
+      } catch (analyticsError) {
+        console.warn("Analytics endpoint failed, trying fallback:", analyticsError);
+        // Fallback to vehicle service direct endpoint
+        const fallbackResponse = await vehicleApi.get("/vehicles/stats");
+        console.log("Fallback response:", fallbackResponse);
+        return fallbackResponse.data;
+      }
     } catch (error: any) {
       if (error.response?.status === 401) {
         console.warn(
@@ -860,24 +976,28 @@ export const vehicleService = {
   // OEM operations
   async getOEMs(filters: { active?: boolean; preferred?: boolean } = {}) {
     try {
-      // Double-check token before making request
-      const token = localStorage.getItem("authToken");
-      if (!token) {
-        console.warn("No auth token available for getOEMs");
-        return { data: [], message: "Authentication required" };
+      const response = await vehicleApi.get("/oems", { 
+        params: filters,
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
+      if (!response.data || !response.data.data) {
+        console.warn("Invalid OEM response format:", response);
+        return { data: [], message: "No OEMs found" };
       }
-
-      const response = await vehicleApi.get("/oems", { params: filters });
       return response.data;
     } catch (error: any) {
-      if (error.response?.status === 401) {
-        console.warn("Authentication required for OEMs data");
-        // Return empty data structure to prevent UI errors
-        return { data: [], message: "Authentication required" };
-      }
-      // For other errors, still return a safe default
       console.error("Error in getOEMs:", error);
-      return { data: [], message: error.message || "Error fetching OEMs" };
+      if (error.response?.status === 404) {
+        return { data: [], message: "No OEMs found" };
+      }
+      return { 
+        data: [], 
+        message: error.response?.data?.message || error.message || "Error fetching OEMs",
+        error: error.response?.data?.error || error.message
+      };
     }
   },
 
