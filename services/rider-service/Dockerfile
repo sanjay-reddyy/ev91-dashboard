@@ -33,4 +33,4 @@ RUN if [ -f "prisma/schema.prisma" ]; then npx prisma generate; fi
 EXPOSE 4005
 
 # Run migrations and start the application
-CMD ["sh", "-c", "npx prisma db push && npx prisma db seed && npm run dev"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx prisma db seed && npm run dev"]
