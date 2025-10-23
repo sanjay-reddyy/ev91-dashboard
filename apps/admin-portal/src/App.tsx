@@ -28,6 +28,7 @@ import RiderManagement from './pages/RiderManagement'
 import RiderEarnings from './pages/RiderEarnings'
 import RiderProfile from './pages/RiderProfile'
 import RiderDetail from './pages/RiderDetail'
+import BulkRiderImport from './pages/BulkRiderImport'
 
 // Vehicle Management Pages
 import VehicleDashboard from './pages/VehicleDashboard'
@@ -223,6 +224,7 @@ const App: React.FC = () => {
                 <Route path="/stores" element={<ClientStoreManagement />} />
                 <Route path="/rider-management" element={<RiderManagement />} />
                 <Route path="/rider-earnings" element={<RiderEarnings />} />
+                <Route path="/bulk-rider-import" element={<BulkRiderImport />} />
                 <Route path="/rider-management/:riderId" element={<RiderDetail />} />
 
                 {/* Vehicle Management Routes */}

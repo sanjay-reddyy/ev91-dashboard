@@ -1,18 +1,26 @@
 /**
- * S3 Service - Industry Standard Implementation
+ * S3 Service - Rider Service Implementation
  *
- * This service wraps the shared S3Service utility to provide
- * rider-service-specific functionality with backward compatibility.
- *
- * New path structure: riders/{riderId}/{category}/{documentType}_{timestamp}.{ext}
+ * This service provides S3 functionality for rider-service specific needs.
+ * 
+ * Path structure: riders/{riderId}/{category}/{documentType}_{timestamp}.{ext}
  */
 
-import {
-  s3Service as sharedS3Service,
-  DocumentCategory,
-} from "@ev91/shared-utils";
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { env } from "../config/env";
 import path from "path";
+
+// Document categories for rider service
+export type DocumentCategory = "kyc" | "profile" | "bank";
+
+// S3 client configuration
+const s3Client = new S3Client({
+  region: env.AWS_REGION || "ap-south-1",
+  credentials: {
+    accessKeyId: env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
 
 export interface S3UploadResult {
   key: string;
@@ -27,6 +35,84 @@ export interface S3UploadOptions {
   documentType?: string;
   folder?: string;
   metadata?: Record<string, string>;
+}
+
+// Local S3 helper functions
+async function uploadFile(
+  entity: string,
+  entityId: string,
+  category: DocumentCategory,
+  documentType: string,
+  fileBuffer: Buffer,
+  originalName: string,
+  metadata: Record<string, string> = {}
+) {
+  const bucket = env.AWS_S3_BUCKET!;
+  const timestamp = Date.now();
+  const ext = path.extname(originalName);
+  const key = `${entity}/${entityId}/${category}/${documentType}_${timestamp}${ext}`;
+
+  const command = new PutObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    Body: fileBuffer,
+    ContentType: metadata.contentType || 'application/octet-stream',
+    Metadata: metadata,
+  });
+
+  await s3Client.send(command);
+
+  return {
+    key,
+    bucket,
+    url: `https://${bucket}.s3.${env.AWS_REGION || 'ap-south-1'}.amazonaws.com/${key}`,
+  };
+}
+
+async function deleteFile(key: string): Promise<void> {
+  const command = new DeleteObjectCommand({
+    Bucket: env.AWS_S3_BUCKET!,
+    Key: key,
+  });
+  await s3Client.send(command);
+}
+
+async function getSignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
+  // For now, return a basic URL - can be enhanced later with presigned URLs
+  const bucket = env.AWS_S3_BUCKET!;
+  return `https://${bucket}.s3.${env.AWS_REGION || 'ap-south-1'}.amazonaws.com/${key}`;
+}
+
+async function fileExists(key: string): Promise<boolean> {
+  try {
+    const command = new HeadObjectCommand({
+      Bucket: env.AWS_S3_BUCKET!,
+      Key: key,
+    });
+    await s3Client.send(command);
+    return true;
+  } catch (error: any) {
+    if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+async function getFileMetadata(key: string): Promise<Record<string, string> | null> {
+  try {
+    const command = new HeadObjectCommand({
+      Bucket: env.AWS_S3_BUCKET!,
+      Key: key,
+    });
+    const result = await s3Client.send(command);
+    return result.Metadata || {};
+  } catch (error: any) {
+    if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export class S3Service {
@@ -77,8 +163,8 @@ export class S3Service {
       const category: DocumentCategory =
         folder === "bank" ? "bank" : folder === "profile" ? "profile" : "kyc";
 
-      // Upload using the shared S3Service with industry-standard path structure
-      const result = await sharedS3Service.uploadFile(
+      // Upload using the local S3 function with industry-standard path structure
+      const result = await uploadFile(
         "riders",
         riderId,
         category,
@@ -88,6 +174,7 @@ export class S3Service {
         {
           ...metadata,
           uploadedBy: "rider-service",
+          contentType: mimeType,
         }
       );
 
@@ -140,7 +227,7 @@ export class S3Service {
    */
   async deleteFile(key: string): Promise<void> {
     try {
-      await sharedS3Service.deleteFile(key);
+      await deleteFile(key);
       console.log(`🗑️ Deleted file from S3: ${key}`);
     } catch (error) {
       console.error("S3 delete error:", error);
@@ -160,7 +247,7 @@ export class S3Service {
     expiresIn: number = 3600
   ): Promise<string> {
     try {
-      return await sharedS3Service.getSignedUrl(key, expiresIn);
+      return await getSignedUrl(key, expiresIn);
     } catch (error) {
       console.error("S3 presigned URL error:", error);
       throw new Error(
@@ -176,7 +263,7 @@ export class S3Service {
    */
   async fileExists(key: string): Promise<boolean> {
     try {
-      return await sharedS3Service.fileExists(key);
+      return await fileExists(key);
     } catch (error: any) {
       if (error.name === "NotFound") {
         return false;
@@ -190,7 +277,7 @@ export class S3Service {
    */
   async getFileMetadata(key: string): Promise<Record<string, string> | null> {
     try {
-      return await sharedS3Service.getFileMetadata(key);
+      return await getFileMetadata(key);
     } catch (error) {
       console.error("S3 metadata error:", error);
       throw new Error(

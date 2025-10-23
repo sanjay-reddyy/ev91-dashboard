@@ -47,6 +47,7 @@ import {
   MergeType as UnifiedServiceIcon,
   LocationOn as CityIcon,
   ShoppingCart as OrderIcon,
+  Upload as UploadIcon,
 } from '@mui/icons-material'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useAuth } from '../../contexts/AuthContext'
@@ -117,6 +118,15 @@ const menuItems: MenuItem[] = [
         anyOfPermissions: [
           { service: 'rider', resource: 'earnings', action: 'read' },
           { service: 'rider', resource: 'riders', action: 'read' },
+          { service: 'rider', resource: 'riders', action: 'manage' }
+        ]
+      },
+      {
+        text: 'Bulk Import',
+        icon: <UploadIcon />,
+        path: '/bulk-rider-import',
+        anyOfPermissions: [
+          { service: 'rider', resource: 'riders', action: 'create' },
           { service: 'rider', resource: 'riders', action: 'manage' }
         ]
       }
